@@ -35,6 +35,3 @@ doc/api/
 *.iml
 .DS_Store
 .metadata
-
-# Generated files
-*.g.dart

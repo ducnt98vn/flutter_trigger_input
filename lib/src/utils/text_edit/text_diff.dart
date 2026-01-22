@@ -68,11 +68,9 @@ class TextDiff {
           ..end = rightStr.length == minLength ? minLength : maxLength;
       }
 
-      for (
-        int iLeftStr = leftStr.length - 1, iRightStr = rightStr.length - 1;
-        iLeftStr >= repLeftStr.start && iRightStr >= repRightStr.start;
-        iLeftStr--, iRightStr--
-      ) {
+      for (int iLeftStr = leftStr.length - 1, iRightStr = rightStr.length - 1;
+          iLeftStr >= repLeftStr.start && iRightStr >= repRightStr.start;
+          iLeftStr--, iRightStr--) {
         if (iLeftStr == repLeftStr.start || iRightStr == repRightStr.start) {
           if (minLength == maxLength) {
             repLeftStr.end = iLeftStr + 1;

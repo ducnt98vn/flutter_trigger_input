@@ -1,3 +1,8 @@
 ## 0.1.0
 
 - Initial release
+
+## 0.1.1
+
+* **Fix**: Added missing generated files (`.g.dart`) to the package distribution to resolve compilation errors.
+

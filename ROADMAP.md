@@ -3,6 +3,10 @@
 ## 0.1.0
 - Initial release.
 
+## 0.1.1
+- **Fix**: Added missing generated files (`.g.dart`) to the package distribution to resolve compilation errors.
+
+
 ## 0.2.0 (Upcoming)
 - [ ] **Atomic Entity Deletion**: Implement a mechanism to delete the entire mention/entity block when any single character within it is deleted.
 - [ ] **User-defined filtering algorithm**.

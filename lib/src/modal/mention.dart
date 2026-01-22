@@ -16,5 +16,5 @@ class Mention<T extends SuggestionInfo> {
   TextStyle? style;
 
   final String Function(String trigger, String mention, String value)?
-  markupBuilder;
+      markupBuilder;
 }

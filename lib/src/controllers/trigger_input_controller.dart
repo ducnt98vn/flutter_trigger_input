@@ -43,9 +43,8 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
     setSelectedMention(null);
 
     // find the text by range and replace with the new value.
-    final replaceStart = sm.start > cloneText.length
-        ? cloneText.length
-        : sm.start;
+    final replaceStart =
+        sm.start > cloneText.length ? cloneText.length : sm.start;
     final replaceEnd = sm.end > cloneText.length ? cloneText.length : sm.end;
 
     final replaceStr = '${'@'}${value.suggestionName}';
