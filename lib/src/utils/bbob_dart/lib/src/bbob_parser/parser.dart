@@ -1,0 +1,211 @@
+import '../bbob_plugin_helper/ast.dart';
+import '../bbob_plugin_helper/char.dart';
+import 'error_message.dart';
+import 'lexer.dart';
+import 'token.dart';
+import 'utils.dart';
+
+/// A parser that parses raw bbcode input.
+///
+/// To use [Parser], initialize it then call [Parser.parse].
+class Parser {
+  /// Result AST of nodes.
+  final List<Node> _nodes = [];
+
+  // If a new cache/buffer field is added, [_resetCache] needs to be updated.
+
+  /// Temporary buffer of nodes that's nested to another node.
+  final List<Element> _nestedElements = [];
+
+  /// Temporary buffer of nodes [tag..]...[/tag].
+  final List<Element> _tagNodeElements = [];
+
+  /// Temporary buffer of tag attributes.
+  final List<String> _elementsAttrName = [];
+
+  /// Cache for nested tags checks.
+  final _nestedTagsMap = {};
+
+  /// Function that'll be called if there is an error.
+  final Function(ParseErrorMessage message)? onError;
+
+  /// Tags that will be treated as valid during parsing. If [validTags] is not
+  /// null and input contains a tag that's not in this list, that tag will be
+  /// ignored.
+  ///
+  /// Default to null, a null [validTags] indicates that all tags will be treated
+  /// as valid.
+  final Set<String>? validTags;
+
+  /// Open tag of the bbcode, default to [openSquareBracket] (the typical
+  /// bbcode open tag).
+  final String openTag;
+
+  /// Close tag of the bbcode, default to [closeSquareBracket] (the typical
+  /// bbcode close tag).
+  final String closeTag;
+
+  /// Whether tags can be escaped. See [Lexer._enableEscapeTags] for a detailed
+  /// explanation.
+  final bool enableEscapeTags;
+
+  /// Underlying tokenizer that'll be initialized each time [Parser.parse] is
+  /// called.
+  late Lexer tokenizer;
+
+  Parser({
+    this.onError,
+    this.openTag = openSquareBracket,
+    this.closeTag = closeSquareBracket,
+    this.enableEscapeTags = false,
+    this.validTags,
+  });
+
+  bool isTagNested(String tagName) => _nestedTagsMap.containsKey(tagName);
+
+  bool isTokenNested(Map nestedTagsMap, Token token) {
+    if (!nestedTagsMap.containsKey(token.value)) {
+      nestedTagsMap[token.value] = tokenizer.isTokenNested(token);
+    }
+
+    return nestedTagsMap[token.value];
+  }
+
+  /// Flushes temp tag nodes and its attributes buffers
+  void _flushTagNodeElements() {
+    if (removePossibleLast(_tagNodeElements) != null) {
+      removePossibleLast(_elementsAttrName);
+    }
+  }
+
+  void _appendNodes(Node node) {
+    final lastNestedNode = lastOrNull(_nestedElements);
+    if (lastNestedNode != null) {
+      lastNestedNode.children.add(node);
+    } else {
+      _nodes.add(node);
+    }
+  }
+
+  void _handleTagStart(Token token) {
+    _flushTagNodeElements();
+
+    final element = Element(token.value);
+    final isNested = isTokenNested(_nestedTagsMap, token);
+
+    _tagNodeElements.add(element);
+
+    if (isNested) {
+      _nestedElements.add(element);
+    } else {
+      _appendNodes(element);
+    }
+  }
+
+  void _handleTagEnd(Token token) {
+    _flushTagNodeElements();
+
+    final lastNestedNode = removePossibleLast(_nestedElements);
+
+    if (lastNestedNode != null) {
+      _appendNodes(lastNestedNode);
+    } else if (onError != null) {
+      final tag = token.value;
+      final row = token.linePosition;
+      final column = token.columnPosition;
+
+      if (onError != null) {
+        onError!(ParseErrorMessage(
+          lineNumber: row,
+          tagName: tag,
+          message: 'Inconsistent tag "$tag" on line $row and column $column',
+          column: column,
+        ));
+      }
+    }
+  }
+
+  void _handleTag(Token token) {
+    // [tag]
+    if (token.isStart) {
+      _handleTagStart(token);
+    }
+
+    // [/tag]
+    if (token.isEnd) {
+      _handleTagEnd(token);
+    }
+  }
+
+  void _handleNode(Token token) {
+    final lastElement = lastOrNull(_tagNodeElements);
+    final tokenValue = token.value;
+    final isNested = isTagNested(token.toString());
+
+    if (lastElement != null) {
+      if (token.isAttributeName) {
+        _elementsAttrName.add(tokenValue);
+        final last = lastOrNull(_elementsAttrName);
+        if (last != null) {
+          lastElement.updateAttributes(last, '');
+        }
+      } else if (token.isAttributeValue) {
+        final attrName = lastOrNull(_elementsAttrName);
+
+        if (attrName != null) {
+          lastElement.updateAttributes(attrName, tokenValue);
+          removePossibleLast(_elementsAttrName);
+        } else {
+          lastElement.updateAttributes(tokenValue, tokenValue);
+        }
+      } else if (token.isText) {
+        if (isNested) {
+          lastElement.appendChild(Text(tokenValue));
+        } else {
+          _appendNodes(Text(tokenValue));
+        }
+      } else if (token.isTag) {
+        // if tag is not allowed, just past it as is
+        _appendNodes(Text(token.toString()));
+      }
+    } else if (token.isText) {
+      _appendNodes(Text(tokenValue));
+    } else if (token.isTag) {
+      // if tag is not allowed, just past it as is
+      _appendNodes(Text(token.toString()));
+    }
+  }
+
+  /// Resets cached data.
+  void _resetCache() {
+    _nodes.clear();
+    _nestedElements.clear();
+    _tagNodeElements.clear();
+    _elementsAttrName.clear();
+    _nestedTagsMap.clear();
+  }
+
+  /// Parses the [input] string and returns the result ast in a list of [Node].
+  List<Node> parse(String input) {
+    _resetCache();
+
+    tokenizer = Lexer.create(
+      input,
+      onToken: (Token token) {
+        bool isAllowedTag = validTags?.contains(token.name) ?? true;
+
+        if (token.isTag && isAllowedTag) {
+          _handleTag(token);
+        } else {
+          _handleNode(token);
+        }
+      },
+      openTag: openTag,
+      closeTag: closeTag,
+      enableEscapeTags: enableEscapeTags,
+    );
+    tokenizer.tokenize();
+
+    return _nodes;
+  }
+}
