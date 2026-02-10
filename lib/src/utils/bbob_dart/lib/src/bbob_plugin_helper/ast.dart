@@ -24,8 +24,8 @@ class Element implements Node {
     this.tag, [
     Map<String, String>? attributes,
     List<Node> children = const [],
-  ])  : children = [...children],
-        attributes = attributes ?? {};
+  ]) : children = [...children],
+       attributes = attributes ?? {};
 
   @override
   String get textContent => children.map((child) => child.textContent).join('');

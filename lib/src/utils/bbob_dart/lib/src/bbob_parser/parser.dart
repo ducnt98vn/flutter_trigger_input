@@ -24,7 +24,7 @@ class Parser {
   final List<String> _elementsAttrName = [];
 
   /// Cache for nested tags checks.
-  final _nestedTagsMap = {};
+  final Map<String, dynamic> _nestedTagsMap = {};
 
   /// Function that'll be called if there is an error.
   final Function(ParseErrorMessage message)? onError;
@@ -63,12 +63,12 @@ class Parser {
 
   bool isTagNested(String tagName) => _nestedTagsMap.containsKey(tagName);
 
-  bool isTokenNested(Map nestedTagsMap, Token token) {
+  bool isTokenNested(Map<String, dynamic> nestedTagsMap, Token token) {
     if (!nestedTagsMap.containsKey(token.value)) {
       nestedTagsMap[token.value] = tokenizer.isTokenNested(token);
     }
 
-    return nestedTagsMap[token.value];
+    return nestedTagsMap.containsKey(token.value);
   }
 
   /// Flushes temp tag nodes and its attributes buffers
@@ -115,12 +115,14 @@ class Parser {
       final column = token.columnPosition;
 
       if (onError != null) {
-        onError!(ParseErrorMessage(
-          lineNumber: row,
-          tagName: tag,
-          message: 'Inconsistent tag "$tag" on line $row and column $column',
-          column: column,
-        ));
+        onError!(
+          ParseErrorMessage(
+            lineNumber: row,
+            tagName: tag,
+            message: 'Inconsistent tag "$tag" on line $row and column $column',
+            column: column,
+          ),
+        );
       }
     }
   }

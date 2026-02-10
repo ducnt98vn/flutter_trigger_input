@@ -7,5 +7,5 @@ class Annotation {
   TextStyle? style;
 
   final String Function(String trigger, String mention, String value)?
-      markupBuilder;
+  markupBuilder;
 }

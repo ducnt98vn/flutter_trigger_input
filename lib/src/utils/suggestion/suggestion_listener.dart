@@ -2,9 +2,7 @@ import 'package:flutter_trigger_input/flutter_trigger_input.dart';
 import 'package:flutter_trigger_input/src/modal/length_map.dart';
 
 class SuggestionListener {
-  SuggestionListenerResult execute({
-    required TFController tfController,
-  }) {
+  SuggestionListenerResult execute({required TFController tfController}) {
     final cursorPos = tfController.selection.baseOffset;
     final currentText = tfController.value.text;
 

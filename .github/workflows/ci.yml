@@ -1,0 +1,64 @@
+name: Flutter Trigger Input Package CI
+
+on:
+  push:
+    branches: [ main ]
+    # tags:    [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
+
+# permissions:
+#   contents: write   # allow creating/updating Releases & uploading assets
+#   actions:  read    # allow pulling marketplace actions
+
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: '3.38.7'
+          cache: true
+
+      - name: Install dependencies
+        run: fvm flutter pub get
+
+      - name: Check format
+        run: dart format --set-exit-if-changed .
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test --coverage
+
+      - name: Check Publish Readiness
+        run: dart pub publish --dry-run
+
+      # ─────────────── ONLY ON TAGS ───────────────
+      - name: 🏷️ Create or update Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: ncipollo/release-action@v1.16.0
+        with:
+          tag:       ${{ github.ref_name }}
+          name:      Release ${{ github.ref_name }}
+          artifacts: artifacts/*.apk
+          token:     ${{ secrets.GITHUB_TOKEN }}
+  # release:
+  #   needs: build
+  #   if: startsWith(github.ref, 'refs/tags/v')
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Create GitHub Release
+  #       uses: softprops/action-gh-release@v1
+  #       with:
+  #         generate_release_notes: true

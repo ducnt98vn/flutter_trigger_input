@@ -22,11 +22,7 @@ class Lexer {
     _em,
   ];
 
-  static const _defaultNotCharTokens = {
-    space,
-    tab,
-    newLine,
-  };
+  static const _defaultNotCharTokens = {space, tab, newLine};
 
   /// The input String.
   final String _buffer;
@@ -61,7 +57,7 @@ class Lexer {
 
   late CharGrabber _bufferGrabber;
 
-  onSkipBufferGrabber() {
+  void onSkipBufferGrabber() {
     _columnPosition++;
   }
 
@@ -71,16 +67,16 @@ class Lexer {
     String openTag = openSquareBracket,
     String closeTag = closeSquareBracket,
     bool enableEscapeTags = false,
-  })  : _tokens = [],
-        _openTag = openTag,
-        _closeTag = closeTag,
-        _enableEscapeTags = enableEscapeTags,
-        _reservedChars = {..._defaultReservedChars, openTag, closeTag},
-        _nonCharTokens = {
-          ..._defaultNotCharTokens,
-          openTag,
-          ...(enableEscapeTags ? [backslash] : [])
-        };
+  }) : _tokens = [],
+       _openTag = openTag,
+       _closeTag = closeTag,
+       _enableEscapeTags = enableEscapeTags,
+       _reservedChars = {..._defaultReservedChars, openTag, closeTag},
+       _nonCharTokens = {
+         ..._defaultNotCharTokens,
+         openTag,
+         ...(enableEscapeTags ? [backslash] : []),
+       };
 
   /// Creates a new [Lexer].
   factory Lexer.create(
@@ -98,9 +94,12 @@ class Lexer {
       enableEscapeTags: enableEscapeTags,
     );
 
-    lexer._bufferGrabber = CharGrabber(buffer, onSkip: () {
-      lexer._columnPosition++;
-    });
+    lexer._bufferGrabber = CharGrabber(
+      buffer,
+      onSkip: () {
+        lexer._columnPosition++;
+      },
+    );
 
     return lexer;
   }
@@ -138,7 +137,7 @@ class Lexer {
 
     var tagMode = TagState.name;
 
-    bool validAttr(char) {
+    bool validAttr(String? char) {
       final isEqual = char == equal;
       final isWhiteSpace = _isWhiteSpace(char);
       final nextChar = attrCharGrabber.next;
@@ -148,7 +147,7 @@ class Lexer {
         return (isEqual || isWhiteSpace || attrCharGrabber.isLast) == false;
       }
 
-      if (skipSpecialChars && _isSpecialChar(char)) {
+      if (skipSpecialChars && _isSpecialChar(char ?? '')) {
         return true;
       }
 
@@ -183,12 +182,24 @@ class Lexer {
         // Tag has ended already, this is a attribute value.
         if (isEnd || isValue) {
           final escaped = unquote(trimChar(name, doubleQuote));
-          attrTokens.add(Token(TokenType.attributeValue, escaped, _linePosition,
-              _columnPosition));
+          attrTokens.add(
+            Token(
+              TokenType.attributeValue,
+              escaped,
+              _linePosition,
+              _columnPosition,
+            ),
+          );
         } else {
           // Definitely a name
-          attrTokens.add(Token(
-              TokenType.attributeName, name, _linePosition, _columnPosition));
+          attrTokens.add(
+            Token(
+              TokenType.attributeName,
+              name,
+              _linePosition,
+              _columnPosition,
+            ),
+          );
         }
 
         if (isEnd) {
@@ -207,8 +218,14 @@ class Lexer {
         attrCharGrabber.skip();
 
         final escaped = unquote(trimChar(attrStr, doubleQuote));
-        attrTokens.add(Token(
-            TokenType.attributeValue, escaped, _linePosition, _columnPosition));
+        attrTokens.add(
+          Token(
+            TokenType.attributeValue,
+            escaped,
+            _linePosition,
+            _columnPosition,
+          ),
+        );
 
         if (attrCharGrabber.isLast) return TagState.name;
         return TagState.attibute;
@@ -237,10 +254,7 @@ class Lexer {
       tagMode = nextTagState();
     }
 
-    return Attribute(
-      tag: tagName!,
-      attrs: attrTokens,
-    );
+    return Attribute(tag: tagName!, attrs: attrTokens);
   }
 
   void _next() {
@@ -251,7 +265,8 @@ class Lexer {
       _columnPosition = 0;
 
       _emitToken(
-          Token(TokenType.newLine, currChar!, _linePosition, _columnPosition));
+        Token(TokenType.newLine, currChar!, _linePosition, _columnPosition),
+      );
 
       // Original bbob increase [linePosition] before [_emitToken]. It seems wrong
       // since new line is at the end of last line.
@@ -265,14 +280,16 @@ class Lexer {
       _bufferGrabber.skip(); // skip the \ without emitting anything
       _bufferGrabber.skip(); // skip past the [ or ] as well
       _emitToken(
-          Token(TokenType.word, nextChar!, _linePosition, _columnPosition));
+        Token(TokenType.word, nextChar!, _linePosition, _columnPosition),
+      );
     } else if (_enableEscapeTags &&
         currChar == backslash &&
         nextChar == backslash) {
       _bufferGrabber.skip(); // skip the first \ without emitting anything
       _bufferGrabber.skip(); // skip past the second \ and emit it
       _emitToken(
-          Token(TokenType.word, nextChar!, _linePosition, _columnPosition));
+        Token(TokenType.word, nextChar!, _linePosition, _columnPosition),
+      );
     } else if (currChar == _openTag) {
       _bufferGrabber.skip(); // skip openTag
 
@@ -284,7 +301,8 @@ class Lexer {
           hasInvalidChars ||
           _bufferGrabber.isLast) {
         _emitToken(
-            Token(TokenType.word, currChar!, _linePosition, _columnPosition));
+          Token(TokenType.word, currChar!, _linePosition, _columnPosition),
+        );
       } else {
         final str = _bufferGrabber.grabWhile((val) => val != _closeTag);
 
@@ -300,7 +318,8 @@ class Lexer {
           final parsed = _parseAttrs(str);
 
           _emitToken(
-              Token(TokenType.tag, parsed.tag, _linePosition, _columnPosition));
+            Token(TokenType.tag, parsed.tag, _linePosition, _columnPosition),
+          );
 
           parsed.attrs.forEach(_emitToken);
         }
@@ -309,7 +328,8 @@ class Lexer {
       _bufferGrabber.skip(); // skip closeTag
 
       _emitToken(
-          Token(TokenType.word, currChar!, _linePosition, _columnPosition));
+        Token(TokenType.word, currChar!, _linePosition, _columnPosition),
+      );
     } else if (_isTokenChar(currChar)) {
       final str = _bufferGrabber.grabWhile(_isTokenChar);
       _emitToken(Token(TokenType.word, str, _linePosition, _columnPosition));
@@ -342,8 +362,4 @@ class Attribute {
 }
 
 /// Represents the current state of parsing a tag.
-enum TagState {
-  name,
-  value,
-  attibute,
-}
+enum TagState { name, value, attibute }

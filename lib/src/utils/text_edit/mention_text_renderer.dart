@@ -13,17 +13,17 @@ class MentionTextRenderer {
     required TFController tfController,
     required TextSelection cacheSelection,
   }) {
-    final currentText = tfController.text;
-    final currentSelection = tfController.selection;
+    final TextEditingValue(text: currentText, selection: currentSelection) =
+        tfController.value;
+
     try {
       String resultText = currentText;
 
-      if (!cacheSelection.isValid || !currentSelection.isValid) {
-        cacheSelection = currentSelection;
-
+      if ({cacheSelection, currentSelection}.any((s) => !s.isValid)) {
         return MentionTextRendererResult(
           cacheDisplayText: currentText,
           selection: currentSelection,
+          mentionedStrs: tfController.mentionedStrs,
         );
       }
 
@@ -277,18 +277,18 @@ class MentionTextRenderer {
                 String name = word.attributes['name'] ?? '';
                 String id = word.attributes['id'] ?? '';
 
-                final text = '@$name';
+                final displayStr = '@$name';
 
                 tempMentions.add(
                   LengthMap(
                     start: markupText.length,
-                    end: markupText.length + text.length,
-                    displayStr: text,
+                    end: markupText.length + displayStr.length,
+                    displayStr: displayStr,
                     originStr: BbCode.createMentionBbob(id: id, name: name),
                   ),
                 );
 
-                markupText += text;
+                markupText += displayStr;
                 markupText += word.textContent;
               } else {
                 markupText += word.textContent;
@@ -313,6 +313,7 @@ class MentionTextRenderer {
       return MentionTextRendererResult(
         cacheDisplayText: resultText,
         selection: currentSelection,
+        mentionedStrs: tfController.mentionedStrs,
       );
     } catch (e) {
       debugPrint(e.toString());

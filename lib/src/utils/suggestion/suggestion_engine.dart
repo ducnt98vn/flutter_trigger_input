@@ -1,6 +1,6 @@
 import 'package:flutter_trigger_input/flutter_trigger_input.dart';
 import 'package:flutter_trigger_input/src/modal/suggestion_engine_result.dart';
-import 'package:flutter_trigger_input/src/utils/extensions.dart';
+import 'package:flutter_trigger_input/extensions/string_ext.dart';
 
 class SuggestionEngine {
   SuggestionEngineResult<T> execute<T extends SuggestionInfo>({
@@ -17,7 +17,8 @@ class SuggestionEngine {
 
     final triggerPos = cursorPos - keyword.length;
 
-    bool allowShowSuggest = triggerPos <= 0 ||
+    bool allowShowSuggest =
+        triggerPos <= 0 ||
         tfTextInputController.mentionedStrs.indexWhere(
               (mentionedStr) =>
                   mentionedStr.start < triggerPos &&
@@ -44,8 +45,9 @@ class SuggestionEngine {
       List<T> newSuggestionInfoList = [];
 
       if (trimedKeyword.isEmpty) {
-        newSuggestionInfoList =
-            cloneSuggestionInfoList.where((member) => member.id != id).toList();
+        newSuggestionInfoList = cloneSuggestionInfoList
+            .where((member) => member.id != id)
+            .toList();
       } else {
         newSuggestionInfoList = cloneSuggestionInfoList
             .where(
@@ -146,8 +148,8 @@ class SuggestionEngine {
         suggestionInfos: tempSuggestionInfos,
         showSuggestions:
             tfTextInputController.mentionedStrs.isEmpty || trimedKeyword.isEmpty
-                ? true
-                : find == -1 && findStr == -1,
+            ? true
+            : find == -1 && findStr == -1,
       );
     } else {
       return SuggestionEngineResult(
@@ -161,7 +163,7 @@ class SuggestionEngine {
     String query = '',
     T? suggestionInfo,
   }) {
-    List listInfo = [];
+    List<String> listInfo = [];
 
     if (suggestionInfo == null) {
       return false;

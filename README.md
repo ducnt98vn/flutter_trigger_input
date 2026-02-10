@@ -1,6 +1,6 @@
 # flutter_trigger_input
 
-![pub package](screenshots/demo.png)
+![pub package](https://github.com/ducnt98vn/flutter_trigger_input/blob/main/screenshots/demo.png?raw=true)
 
 A highly customizable Flutter widget for detecting and handling interactive triggers like mentions, hashtags, and links within a text field. It offers a seamless way to manage suggestion overlays with full generic type support and built-in markup parsing.
 
@@ -40,9 +40,7 @@ ValueListenableBuilder<List<SuggestionInfo>>(
 ## Credits 👨‍💻
 
 * [bbob_dart](https://pub.dev/packages/bbob_dart)
-
-## License ⚖️
-* [MIT](LICENSE)
+* [flutter_quill](https://pub.dev/packages/flutter_quill)
 
 ## Issues and feedback 💭
 If you have any suggestion for including a feature or if something doesn't work, feel free to open a Github issue for us to have a discussion on it.

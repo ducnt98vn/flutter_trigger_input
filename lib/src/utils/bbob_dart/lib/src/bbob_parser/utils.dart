@@ -56,7 +56,7 @@ class CharGrabber {
   }
 
   /// Skips one character and calls [onSkip].
-  skip() {
+  void skip() {
     _index++;
 
     if (onSkip != null) {

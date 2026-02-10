@@ -22,17 +22,14 @@ extension StringUtils on String {
         RegExp(r'\u0300|\u0301|\u0303|\u0309|\u0323'),
         '',
       ); // Huyền sắc hỏi ngã nặng
-      str =
-          str.replaceAll(RegExp(r'\u02C6|\u0306|\u031B'), ''); // Â, Ê, Ă, Ơ, Ư
+      str = str.replaceAll(
+        RegExp(r'\u02C6|\u0306|\u031B'),
+        '',
+      ); // Â, Ê, Ă, Ơ, Ư
 
       return str;
     } catch (err) {
       return '';
     }
   }
-}
-
-extension ListExtension<T> on List<T> {
-  T? tryGet(int? index) =>
-      index == null || index < 0 || index >= length ? null : this[index];
 }

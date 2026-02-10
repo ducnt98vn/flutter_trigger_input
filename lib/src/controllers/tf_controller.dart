@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_trigger_input/src/modal/annotation.dart';
 import 'package:flutter_trigger_input/src/modal/length_map.dart';
 import 'package:flutter_trigger_input/src/utils/bbcode.dart';
-import 'package:flutter_trigger_input/src/utils/extensions.dart';
+import 'package:flutter_trigger_input/extensions/list_ext.dart';
 
 class TFController extends TextEditingController {
   TextStyle baseEntityTextStyle = const TextStyle(
@@ -62,7 +62,8 @@ class TFController extends TextEditingController {
     try {
       String resultText = cacheText;
       List<LengthMap> tempMentions = mentionedStrs;
-      int difference = mentionStr.displayStr.length +
+      int difference =
+          mentionStr.displayStr.length +
           (appendSpaceOnAdd ? 1 : 0) -
           cacheStr.displayStr.length;
 

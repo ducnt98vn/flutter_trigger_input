@@ -157,58 +157,52 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
 }
 
 class TriggerInputFieldState extends State<TriggerInputField> {
-  late TriggerInputController controller;
-  String oldText = '';
-
   @override
   void initState() {
-    controller = widget.controller;
-    controller.state.canMentions.value = widget.initSuggestList;
+    widget.controller.state.canMentions.value = widget.initSuggestList;
 
-    controller.tfController.addListener(
-      () => controller.renderMentionListener(),
+    widget.controller.tfController.addListener(
+      () => widget.controller.renderMentionListener(),
     );
 
-    controller.tfController.addListener(_suggestionListener);
+    widget.controller.tfController.addListener(_suggestionListener);
 
-    controller.tfController.addListener(_tfTextInputListeners);
+    widget.controller.tfController.addListener(_tfTextInputListeners);
 
-    controller.tfController.addListener(_inputListeners);
+    widget.controller.tfController.addListener(_inputListeners);
 
     super.initState();
   }
 
   @override
   void dispose() {
-    controller.tfController.removeListener(_suggestionListener);
-    controller.tfController.removeListener(_tfTextInputListeners);
-    controller.tfController.removeListener(_inputListeners);
+    widget.controller.tfController.removeListener(_suggestionListener);
+    widget.controller.tfController.removeListener(_tfTextInputListeners);
+    widget.controller.tfController.removeListener(_inputListeners);
 
     super.dispose();
   }
 
   void _suggestionListener() {
-    controller.suggestionListener();
-
-    oldText = controller.tfController.text;
+    widget.controller.suggestionListener();
   }
 
   void _tfTextInputListeners() {
-    if (controller.tfController.text.trim().isEmpty) {
-      controller.state.setSelectedMentionInfos([]);
-      controller.tfController.mentionedStrs.clear();
+    if (widget.controller.tfController.text.trim().isEmpty) {
+      widget.controller.state.setSelectedMentionInfos([]);
+      widget.controller.tfController.mentionedStrs.clear();
     }
   }
 
   void _inputListeners() {
-    if (controller.state.selectedMentionLengths.value?.displayStr
+    if (widget.controller.state.selectedMentionLengths.value?.displayStr
         case final String str?) {
       final keyword = str;
       widget.onKeywordChanged?.call(keyword);
-      controller.onMentionSearchChanged(
+      widget.controller.onMentionSearchChanged(
         trigger: str[0],
         keyword: keyword.substring(1),
-        canMentions: controller.state.canMentions.value,
+        canMentions: widget.controller.state.canMentions.value,
       );
     }
   }
@@ -216,7 +210,7 @@ class TriggerInputFieldState extends State<TriggerInputField> {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: controller.tfController,
+      controller: widget.controller.tfController,
       maxLines: widget.maxLines,
       minLines: widget.minLines,
       maxLength: widget.maxLength,
