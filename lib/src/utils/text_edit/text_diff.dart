@@ -9,6 +9,13 @@ class TextDiff {
     required String rightStr,
   }) {
     try {
+      // DiffMatchPatch dmp = new DiffMatchPatch();
+      // List<Diff> d = dmp.diff('Hello World.', 'Goodbye World.');
+
+      // dmp.diffCleanupSemantic(d);
+      // // Result: [(-1, "Hello"), (1, "Goodbye"), (0, " World.")]
+      // print(d);
+
       // 2 chuỗi bằng nhau không có thay đổi gì
       // có TH chuỗi được dán giống chuỗi đầu
       if (leftStr == rightStr) {

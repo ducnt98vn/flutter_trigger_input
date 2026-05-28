@@ -2,14 +2,14 @@ import 'package:flutter_trigger_input/flutter_trigger_input.dart';
 import 'package:flutter_trigger_input/src/modal/length_map.dart';
 
 class SuggestionListener {
-  SuggestionListenerResult execute({required TFController tfController}) {
+  LengthMap? execute({required TFController tfController}) {
     final cursorPos = tfController.selection.baseOffset;
     final currentText = tfController.value.text;
 
     if (currentText.trim().isEmpty ||
         !tfController.selection.isCollapsed ||
         cursorPos == 0) {
-      return SuggestionListenerResult(showSuggestions: false);
+      return null;
     }
 
     int? atSignPos;
@@ -27,7 +27,7 @@ class SuggestionListener {
     }
 
     if (atSignPos == null) {
-      return SuggestionListenerResult(showSuggestions: false);
+      return null;
     }
 
     // TODO: chỗ này cần tối ưu
@@ -42,25 +42,12 @@ class SuggestionListener {
     );
 
     // Hiển thị gợi ý khi con trỏ không nằm trong vị trị có mention
-    return SuggestionListenerResult(
-      showSuggestions: false,
-      selectedMention: mentionedIndex != -1
-          ? null
-          : LengthMap(
-              start: atSignPos,
-              end: cursorPos,
-              displayStr: currentText.substring(atSignPos, cursorPos),
-            ),
-    );
+    return mentionedIndex != -1
+        ? null
+        : LengthMap(
+            start: atSignPos,
+            end: cursorPos,
+            displayStr: currentText.substring(atSignPos, cursorPos),
+          );
   }
-}
-
-class SuggestionListenerResult {
-  final bool showSuggestions;
-  final LengthMap? selectedMention;
-
-  SuggestionListenerResult({
-    required this.showSuggestions,
-    this.selectedMention,
-  });
 }

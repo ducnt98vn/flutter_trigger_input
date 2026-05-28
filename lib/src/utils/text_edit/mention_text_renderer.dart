@@ -13,317 +13,199 @@ class MentionTextRenderer {
     required TFController tfController,
     required TextSelection cacheSelection,
   }) {
-    final TextEditingValue(text: currentText, selection: currentSelection) =
-        tfController.value;
+    final TextEditingValue(:text, :selection) = tfController.value;
+
+    if (!selection.isValid || !cacheSelection.isValid) {
+      return MentionTextRendererResult(
+        cacheDisplayText: text,
+        selection: selection,
+        mentionedStrs: tfController.mentionedStrs,
+      );
+    }
+
+    if (text.isEmpty) {
+      return MentionTextRendererResult(
+        cacheDisplayText: '',
+        mentionedStrs: [],
+        selection: selection,
+      );
+    }
+
+    if (text == cacheDisplayText) {
+      return MentionTextRendererResult(
+        cacheDisplayText: text,
+        selection: selection,
+        mentionedStrs: tfController.mentionedStrs,
+      );
+    }
 
     try {
-      String resultText = currentText;
+      // Thuật toán dựa trên việc xác định: Thay thế vùng (replaceStart, replaceEnd) bằng chuỗi mới (newStr)
+      int replaceStart;
+      int replaceEnd;
+      String newStr;
 
-      if ({cacheSelection, currentSelection}.any((s) => !s.isValid)) {
-        return MentionTextRendererResult(
-          cacheDisplayText: currentText,
-          selection: currentSelection,
-          mentionedStrs: tfController.mentionedStrs,
-        );
-      }
+      final cacheLen = cacheDisplayText.length;
+      final textLen = text.length;
 
-      if (currentText.isEmpty) {
-        return MentionTextRendererResult(
-          cacheDisplayText: '',
-          mentionedStrs: [],
-          selection: currentSelection,
-        );
-      }
+      if (!cacheSelection.isCollapsed) {
+        // 1. Trường hợp có vùng chọn (Selection): Thay thế vùng chọn bằng văn bản mới (hoặc rỗng nếu xoá)
+        replaceStart = cacheSelection.start;
+        replaceEnd = cacheSelection.end;
+        newStr = text.substring(replaceStart, selection.end.clamp(replaceStart, textLen));
+      } else if (textLen > cacheLen) {
+        // 2. Trường hợp Thêm (Insertion) tại con trỏ
+        replaceStart = cacheSelection.start;
+        replaceEnd = cacheSelection.start;
 
-      if (currentText != cacheDisplayText) {
-        String cacheStr = '', newStr = '';
-        int difference = 0,
-            replaceStart = cacheSelection.start,
-            replaceEnd = cacheSelection.end;
-        TextSelection tempSelection = currentSelection;
-        List<LengthMap> tempMentions = tfController.mentionedStrs;
-
-        /**
-         * TH: Logic to delete or replace one or more characters in the text field.
-         */
-        if (currentText.length < cacheDisplayText.length) {
-          if (cacheSelection.isCollapsed) {
-            replaceStart = currentSelection.baseOffset;
-            replaceEnd = cacheSelection.extentOffset;
-          } else {
-            replaceStart = cacheSelection.baseOffset;
-            replaceEnd = cacheSelection.extentOffset;
-          }
-          if (cacheSelection.baseOffset < currentSelection.extentOffset) {
-            newStr = currentText.substring(
-              cacheSelection.baseOffset,
-              currentSelection.extentOffset,
-            );
-          }
-        } else if (currentText.length > cacheDisplayText.length) {
-          if (!cacheSelection.isCollapsed) {
-            replaceStart = cacheSelection.baseOffset;
-            replaceEnd = cacheSelection.extentOffset;
-          }
-
-          // newStr = currentText.substring(
-          //   cacheSelection.baseOffset,
-          //   currentSelection.extentOffset,
-          // );
-
-          /**
-           * TH: Nhập ngôn ngữ tiếng việt.
-           *
-           * Ta có văn bản lúc đầu là "làm"
-           * Step:
-           *  1. Nhập "f" => văn bản sẽ thành "làmf"
-           *
-           * Case đúng: "lamf"
-           */
-
-          if (cacheSelection.isCollapsed && currentSelection.isCollapsed) {
-            /**
-             * Kiểm tra từ mới nhập có rỗng hay không
-             * 1. Có => Bỏ qua.
-             * 2. Không => cắt từ đó ra để lấy vị trí thay đổi của từ đó
-             * Vd làm => lamf
-             */
-            if (currentText
-                .substring(
-                  cacheSelection.baseOffset,
-                  currentSelection.extentOffset,
-                )
-                .trim()
-                .isNotEmpty) {
-              String cacheEditedWord = '';
-              String newEditedWord = '';
-
-              for (var i = cacheSelection.start - 1; i >= 0; i--) {
-                if (cacheDisplayText[i].trim().isEmpty) {
-                  cacheEditedWord = cacheDisplayText.substring(
-                    i,
-                    cacheSelection.end,
-                  );
-                  newEditedWord = currentText.substring(
-                    i,
-                    currentSelection.end,
-                  );
-                  replaceStart = i;
-                  break;
-                }
-
-                /**
-                 * TH: Checks if the trigger/text is at the start of a sentence.
-                 */
-                if (i == 0) {
-                  cacheEditedWord = cacheDisplayText.substring(
-                    0,
-                    cacheSelection.end,
-                  );
-                  newEditedWord = currentText.substring(
-                    0,
-                    currentSelection.end,
-                  );
-                  replaceStart = i;
-                }
-              }
-
-              /**
-               * Scans from the start of the current word to locate diacritic/mark changes.
-               */
-              for (int i = 0; i < cacheEditedWord.length; i++) {
-                if (cacheEditedWord[i] != newEditedWord[i]) {
-                  replaceStart = replaceStart + i;
-                  break;
-                }
-
-                if (i == cacheEditedWord.length - 1) {
-                  replaceStart = replaceStart + cacheEditedWord.length;
-                }
-              }
-            }
-
-            replaceEnd = cacheSelection.end;
-            cacheStr = cacheDisplayText.substring(
-              replaceStart,
-              cacheSelection.extentOffset,
-            );
-            newStr = currentText.substring(
-              replaceStart,
-              currentSelection.extentOffset,
-            );
-          } else {
-            newStr = currentText.substring(
-              cacheSelection.baseOffset,
-              currentSelection.extentOffset,
-            );
-          }
-        } else {
-          replaceEnd = cacheSelection.extentOffset;
-
-          /**
-           * TH: Nhập ngôn ngữ tiếng việt.
-           *
-           * Ta có văn bản lúc đầu là "e"
-           * Step:
-           *  1. Nhập "e" => văn bản sẽ thành "ê"
-           *  2. Vị trí con trỏ không thay đổi.
-           *  3. Cắt sai ký tự thay đổi.
-           *
-           * Note: Các ngôn ngữ khác (Trung, Nhật, Ấn Độ,...) chưa kiểm tra =))) 👍
-           */
-          if (currentSelection.isCollapsed &&
-              cacheSelection.isCollapsed &&
-              cacheSelection.start == currentSelection.start) {
-            final result = TextDiff.execute(
-              leftStr: cacheDisplayText,
-              rightStr: currentText,
-            );
-
-            replaceStart = result.leftStr.start;
-
-            newStr = currentText.substring(
-              replaceStart,
-              currentSelection.extentOffset,
-            );
-          } else {
-            replaceStart = cacheSelection.baseOffset;
-
-            newStr = currentText.substring(
-              cacheSelection.baseOffset,
-              currentSelection.extentOffset,
-            );
-          }
-        }
-
-        cacheStr = cacheDisplayText.substring(replaceStart, replaceEnd);
-        difference = newStr.length - cacheStr.length;
-
-        for (int index = 0; index < tempMentions.length; index++) {
-          final mention = tempMentions[index];
-
-          if (replaceStart >= mention.end) continue;
-
-          if (replaceStart < mention.start && replaceEnd > mention.start) {
-            // if (replaceEnd < mention.end) {
-            //   difference -= mention.end - replaceEnd;
-            //   replaceEnd = mention.end;
-            // }
-
-            tempMentions.removeAt(index);
-            index--;
-            continue;
-          }
-
-          if (replaceStart > mention.start && replaceStart < mention.end ||
-              replaceStart == mention.start && replaceEnd > mention.start) {
-            // difference -= replaceStart - mention.start;
-            // replaceStart = mention.start;
-
-            // if (replaceEnd > mention.start && replaceEnd < mention.end) {
-            //   difference -= mention.end - replaceEnd;
-            //   replaceEnd = mention.end;
-            // }
-
-            tempMentions.removeAt(index);
-            index--;
-            continue;
-          }
-
-          if (replaceEnd <= mention.start) {
-            tempMentions[index]
-              ..start = tempMentions[index].start + difference
-              ..end = tempMentions[index].end + difference;
-          }
-        }
-
-        tempSelection = TextSelection.collapsed(
-          offset: replaceStart + newStr.length,
-        );
-
-        resultText = cacheDisplayText.replaceRange(
-          replaceStart,
-          replaceEnd,
-          newStr,
-        );
-
-        List<LengthMap> mentions = BbCode.getMentionsBbobInText(resultText);
-
-        if (mentions.isNotEmpty) {
-          String markupText = tfController.markupText;
-
-          final dataArr = parse(
-            markupText,
-            onError: (msg) {},
-            openTag: '[',
-            closeTag: ']',
-            enableEscapeTags: false,
-            validTags: {'link', 'mention'},
+        // Xử lý bộ gõ tiếng Việt hoặc nhập liệu phức tạp (ví dụ: 'a' + 's' -> 'á')
+        final typedPortion = text.substring(cacheSelection.start, selection.end);
+        if (typedPortion.trim().isNotEmpty) {
+          // Tìm ranh giới từ để xác định chính xác phần nào trong từ đã thay đổi
+          final wordStart = _findWordStart(cacheDisplayText, cacheSelection.start);
+          final diff = TextDiff.execute(
+            leftStr: cacheDisplayText.substring(wordStart, cacheSelection.end),
+            rightStr: text.substring(wordStart, selection.end),
           );
+          replaceStart = wordStart + diff.leftStr.start;
+          replaceEnd = wordStart + diff.leftStr.end;
+          newStr = diff.rightStr.displayStr;
+        } else {
+          newStr = typedPortion;
+        }
+      } else if (textLen < cacheLen) {
+        // 3. Trường hợp Xoá (Deletion) tại con trỏ
+        if (selection.start < cacheSelection.start) {
+          // Backspace (Xoá lùi)
+          replaceStart = selection.start;
+          replaceEnd = cacheSelection.start;
+          newStr = "";
+        } else {
+          // Forward Delete (Xoá tiến - phím Del)
+          replaceStart = cacheSelection.start;
+          replaceEnd = cacheSelection.start + (cacheLen - textLen);
+          newStr = "";
+        }
+      } else {
+        // 4. Trường hợp Thay thế (Replacement) cùng độ dài (ví dụ: thay đổi dấu mà không di chuyển con trỏ)
+        final diff = TextDiff.execute(leftStr: cacheDisplayText, rightStr: text);
+        replaceStart = diff.leftStr.start;
+        replaceEnd = diff.leftStr.end;
+        newStr = diff.rightStr.displayStr;
+      }
 
-          markupText = '';
+      // Đảm bảo chỉ số nằm trong phạm vi an toàn
+      replaceStart = replaceStart.clamp(0, cacheLen);
+      replaceEnd = replaceEnd.clamp(replaceStart, cacheLen);
 
-          tempMentions.clear();
+      // Cập nhật Mentions dựa trên phép thay thế
+      final List<LengthMap> tempMentions = List.from(tfController.mentionedStrs);
+      int difference = newStr.length - (replaceEnd - replaceStart);
 
-          for (int i = 0; i < dataArr.length; i++) {
-            final word = dataArr[i];
+      for (int i = 0; i < tempMentions.length; i++) {
+        final mention = tempMentions[i];
 
-            if (word is Text) {
-              markupText += word.text;
-            } else if (word is Element) {
-              if (word.tag == 'link') {
-                markupText += word.textContent;
-              } else if (word.tag == 'mention') {
-                String name = word.attributes['name'] ?? '';
-                String id = word.attributes['id'] ?? '';
+        // Phép thay thế nằm hoàn toàn sau mention -> Không ảnh hưởng
+        if (replaceStart >= mention.end) continue;
 
-                final displayStr = '@$name';
-
-                tempMentions.add(
-                  LengthMap(
-                    start: markupText.length,
-                    end: markupText.length + displayStr.length,
-                    displayStr: displayStr,
-                    originStr: BbCode.createMentionBbob(id: id, name: name),
-                  ),
-                );
-
-                markupText += displayStr;
-                markupText += word.textContent;
-              } else {
-                markupText += word.textContent;
-              }
-            }
-          }
-
-          resultText = markupText;
-          tempSelection = TextSelection.collapsed(offset: resultText.length);
+        // Phép thay thế nằm hoàn toàn trước mention -> Dịch chuyển mention
+        if (replaceEnd <= mention.start) {
+          mention.start += difference;
+          mention.end += difference;
+          continue;
         }
 
-        cacheSelection = tempSelection;
+        // Phép thay thế đè lên mention (Overlap)
+        // Bổ sung logic "Atomic Entity Deletion": Nếu xoá một phần mention, tự động xoá toàn bộ
+        if (newStr.isEmpty && (replaceStart > mention.start || (replaceStart == mention.start && replaceEnd > mention.start))) {
+          final int mentionLen = mention.end - mention.start;
+          replaceStart = mention.start;
+          replaceEnd = mention.end;
+          difference = -mentionLen;
+        }
 
-        return MentionTextRendererResult(
-          cacheDisplayText: resultText,
-          text: resultText,
-          selection: tempSelection,
-          mentionedStrs: tempMentions,
-        );
+        tempMentions.removeAt(i);
+        i--;
+      }
+
+      // Tạo văn bản kết quả
+      final resultText = cacheDisplayText.replaceRange(replaceStart, replaceEnd, newStr);
+
+      // Nếu văn bản kết quả khớp với controller, tin tưởng selection của controller (IME)
+      final resultSelection = (resultText == text)
+          ? selection
+          : TextSelection.collapsed(offset: replaceStart + newStr.length);
+
+      // Đồng bộ từ markup nếu phát hiện BBCode (thường do paste)
+      if (BbCode.getMentionsBbobInText(resultText).isNotEmpty) {
+        return _syncFromMarkup(tfController.markupText);
       }
 
       return MentionTextRendererResult(
         cacheDisplayText: resultText,
-        selection: currentSelection,
-        mentionedStrs: tfController.mentionedStrs,
+        text: resultText,
+        selection: resultSelection,
+        mentionedStrs: tempMentions,
       );
     } catch (e) {
-      debugPrint(e.toString());
-
-      // rethrow;
+      debugPrint('MentionTextRenderer error: $e');
       return MentionTextRendererResult(
-        cacheDisplayText: currentText,
-        selection: currentSelection,
-        mentionedStrs: [],
+        cacheDisplayText: text,
+        selection: selection,
+        mentionedStrs: tfController.mentionedStrs,
       );
     }
+  }
+
+  int _findWordStart(String text, int cursor) {
+    for (int i = cursor - 1; i >= 0; i--) {
+      if (text[i].trim().isEmpty) return i + 1;
+    }
+    return 0;
+  }
+
+  MentionTextRendererResult _syncFromMarkup(String markupText) {
+    final nodes = parse(
+      markupText,
+      onError: (msg) {},
+      openTag: '[',
+      closeTag: ']',
+      enableEscapeTags: false,
+      validTags: {'link', 'mention'},
+    );
+
+    final plainTextBuffer = StringBuffer();
+    final List<LengthMap> mentions = [];
+
+    for (final node in nodes) {
+      if (node is Text) {
+        plainTextBuffer.write(node.text);
+      } else if (node is Element) {
+        if (node.tag == 'mention') {
+          final name = node.attributes['name'] ?? '';
+          final id = node.attributes['id'] ?? '';
+          final displayStr = '@$name';
+
+          mentions.add(LengthMap(
+            start: plainTextBuffer.length,
+            end: plainTextBuffer.length + displayStr.length,
+            displayStr: displayStr,
+            originStr: BbCode.createMentionBbob(id: id, name: name),
+          ));
+
+          plainTextBuffer.write(displayStr);
+        } else {
+          plainTextBuffer.write(node.textContent);
+        }
+      }
+    }
+
+    final resultText = plainTextBuffer.toString();
+    return MentionTextRendererResult(
+      cacheDisplayText: resultText,
+      text: resultText,
+      selection: TextSelection.collapsed(offset: resultText.length),
+      mentionedStrs: mentions,
+    );
   }
 }

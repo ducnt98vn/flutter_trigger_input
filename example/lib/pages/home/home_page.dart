@@ -11,10 +11,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final List<HomeItem> items = [
     HomeItem(
-        title: 'Flutter Quill',
-        subtitle: 'Use the flutter_quill library.',
-        route: AppRoutes.flutterQuill),
-    HomeItem(
         title: 'Trigger Input',
         subtitle: 'Use the flutter_trigger_input library.',
         route: AppRoutes.triggerInput),

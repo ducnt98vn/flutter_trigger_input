@@ -2,7 +2,6 @@ import 'package:flutter/material.dart' hide Text, Element;
 import 'package:flutter_trigger_input/flutter_trigger_input.dart';
 import 'package:flutter_trigger_input/src/modal/length_map.dart';
 import 'package:flutter_trigger_input/src/utils/bbcode.dart';
-import 'package:flutter_trigger_input/src/utils/suggestion/suggestion_engine.dart';
 import 'package:flutter_trigger_input/src/utils/suggestion/suggestion_listener.dart';
 import 'package:flutter_trigger_input/src/utils/text_edit/mention_text_renderer.dart';
 
@@ -10,146 +9,118 @@ import 'trigger_state.dart';
 
 class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
   final state = TriggerState<T>();
-  TFController tfController = TFController();
-  MentionTextRenderer mentionTextRenderer = MentionTextRenderer();
-  SuggestionListener suggestionListenerC = SuggestionListener();
-  SuggestionEngine suggestionEngine = SuggestionEngine();
+  final tfController = TFController();
+  final mentionTextRenderer = MentionTextRenderer();
+  final suggestionListenerC = SuggestionListener();
 
   void suggestMentionDispose() {
-    final TriggerState(
-      :suggestionInfos,
-      selectedMentionInfos: selectedMentions,
-      selectedMentionLengths: selectedMention,
-    ) = state;
-
-    selectedMentions.dispose();
-
-    suggestionInfos.dispose();
-
-    selectedMention.dispose();
+    state.selectedMentionInfos.dispose();
+    state.suggestionInfos.dispose();
+    state.selectedMentionLengths.dispose();
   }
 
+  @override
+  void dispose() {
+    suggestMentionDispose();
+    tfController.dispose();
+    super.dispose();
+  }
+
+  /// Adds a mention at the current suggestion position.
   void addMention(T value) {
-    final TriggerState(
-      selectedMentionLengths: selectedMention,
-      setSelectedMentionLengths: setSelectedMention,
-    ) = state;
+    final selectedMention = state.selectedMentionLengths.value;
+    if (selectedMention == null) return;
 
-    if (selectedMention.value == null) return;
+    state.setSelectedMentionLengths(null);
 
-    final cloneText = tfController.value.text;
-    final sm = LengthMap.fromJson(selectedMention.value!.toJson());
+    final currentText = tfController.text;
+    final replaceStart = selectedMention.start.clamp(0, currentText.length);
+    final replaceEnd = selectedMention.end.clamp(
+      replaceStart,
+      currentText.length,
+    );
 
-    setSelectedMention(null);
+    // Currently hardcoded to '@', consider making this configurable if needed.
+    final mentionDisplay = '@${value.suggestionName}';
+    final suffix = state.appendSpaceOnAdd ? ' ' : '';
+    final fullReplaceStr = '$mentionDisplay$suffix';
 
-    // find the text by range and replace with the new value.
-    final replaceStart = sm.start > cloneText.length
-        ? cloneText.length
-        : sm.start;
-    final replaceEnd = sm.end > cloneText.length ? cloneText.length : sm.end;
-
-    final replaceStr = '${'@'}${value.suggestionName}';
-
-    state.cacheDisplayText = cloneText.replaceRange(
+    // Synchronize cache to prevent jumpy UI during renderMentionListener
+    state.cacheDisplayText = currentText.replaceRange(
       replaceStart,
       replaceEnd,
-      '$replaceStr${state.appendSpaceOnAdd ? ' ' : ''}',
+      fullReplaceStr,
+    );
+    state.cacheSelection = TextSelection.collapsed(
+      offset: replaceStart + fullReplaceStr.length,
     );
 
     tfController.addMention(
       cursorPos: tfController.selection.baseOffset,
-      cacheText: cloneText,
-      cacheStr: sm
-        ..start = replaceStart
-        ..end = replaceEnd,
+      cacheText: currentText,
+      cacheStr: LengthMap(
+        start: replaceStart,
+        end: replaceEnd,
+        displayStr: currentText.substring(replaceStart, replaceEnd),
+      ),
       mentionStr: LengthMap(
         start: replaceStart,
-        end: replaceStart + '${'@'}${value.suggestionName}'.length,
-        displayStr: replaceStr,
+        end: replaceStart + mentionDisplay.length,
+        displayStr: mentionDisplay,
         originStr: BbCode.createMentionBbob(name: value.name, id: value.id),
       ),
+      appendSpaceOnAdd: state.appendSpaceOnAdd,
     );
+
+    _syncSelectedMentionInfos(value);
   }
 
-  // TODO: IMPROVE
+  /// Inserts an entity at the very beginning of the text field.
   void insertEntityAtStart({required T entity}) {
-    final TriggerState(selectedMentionInfos: selectedMentions) = state;
+    final mentionDisplay = '@${entity.name}';
+    final bbcode = BbCode.createMentionBbob(id: entity.id, name: entity.name);
 
-    final findIndex = tfController.mentionedStrs.indexWhere(
-      (element) =>
-          element.originStr ==
-          BbCode.createMentionBbob(id: entity.id, name: entity.name),
-    );
-    if (findIndex > -1) return;
+    // Prevent duplicate insertion of the same entity if it's already there
+    final exists = tfController.mentionedStrs.any((e) => e.originStr == bbcode);
+    if (exists) return;
 
-    final cloneText = tfController.value.text;
+    final currentText = tfController.text;
+    final suffix = state.appendSpaceOnAdd ? ' ' : '';
+    final fullInsertStr = '$mentionDisplay$suffix';
 
-    String str = '${'@'}${entity.name}';
-
-    selectedMentions.value.add(entity);
-
-    state.cacheDisplayText = cloneText.replaceRange(
-      0,
-      0,
-      '$str${state.appendSpaceOnAdd ? ' ' : ''}',
+    state.cacheDisplayText = currentText.replaceRange(0, 0, fullInsertStr);
+    state.cacheSelection = TextSelection.collapsed(
+      offset: fullInsertStr.length,
     );
 
     tfController.addMention(
       cursorPos: 0,
-      cacheText: cloneText,
+      cacheText: currentText,
       cacheStr: LengthMap(start: 0, end: 0, displayStr: ''),
       mentionStr: LengthMap(
         start: 0,
-        end: str.length,
-        displayStr: str,
-        originStr: BbCode.createMentionBbob(id: entity.id, name: entity.name),
+        end: mentionDisplay.length,
+        displayStr: mentionDisplay,
+        originStr: bbcode,
       ),
+      appendSpaceOnAdd: state.appendSpaceOnAdd,
     );
+
+    _syncSelectedMentionInfos(entity);
   }
 
-  void onMentionSearchChanged({
-    required List<T> canMentions,
-    String trigger = '',
-    String keyword = '',
-  }) {
-    final result = suggestionEngine.execute<T>(
-      tfTextInputController: tfController,
-      canMentions: canMentions,
-      suggestionInfos: state.suggestionInfos.value,
-      trigger: trigger,
-      keyword: keyword,
-    );
-
-    state.suggestionInfos.value = result.suggestionInfos ?? [];
-    state.showSuggestions.value = result.showSuggestions;
-
-    return;
+  /// Synchronizes the list of selected mention objects.
+  void _syncSelectedMentionInfos(T entity) {
+    final currentList = state.selectedMentionInfos.value;
+    if (!currentList.any((e) => e.id == entity.id)) {
+      state.setSelectedMentionInfos([...currentList, entity]);
+    }
   }
 
   void suggestionListener() {
-    final TriggerState(:showSuggestions, :setSelectedMentionLengths) = state;
-
     final result = suggestionListenerC.execute(tfController: tfController);
-
-    showSuggestions.value = result.showSuggestions;
-    setSelectedMentionLengths(result.selectedMention);
-
-    return;
+    state.setSelectedMentionLengths(result);
   }
-
-  // void addMentionFromText({required List<Node> data}) {
-  //   final TriggerState(:setSelectedMentionInfos) = state;
-
-  //   setSelectedMentionInfos([
-  //     for (var item in ExtractBbcode.getMentionsListInText(data))
-  //       SuggestionInfo(
-  //         id: item.attributes['id'] ?? '',
-  //         name: item.attributes['name'] ?? '',
-  //       ),
-  //   ]);
-
-  //   tfController.mentionedStrs = ExtractBbcode.getMentionsInText(data);
-  // }
 
   void renderMentionListener() {
     final result = mentionTextRenderer.execute(
@@ -160,12 +131,17 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
 
     state.cacheSelection = result.selection;
     state.cacheDisplayText = result.cacheDisplayText;
-
     tfController.mentionedStrs = result.mentionedStrs;
 
-    tfController.value = TextEditingValue(
-      text: result.text ?? tfController.value.text,
-      selection: result.selection,
-    );
+    final newText = result.text ?? tfController.text;
+
+    // Only update if there's an actual change to avoid unnecessary rebuilds
+    if (tfController.text != newText ||
+        tfController.selection != result.selection) {
+      tfController.value = TextEditingValue(
+        text: newText,
+        selection: result.selection,
+      );
+    }
   }
 }

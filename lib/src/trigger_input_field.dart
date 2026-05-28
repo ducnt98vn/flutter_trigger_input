@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'controllers/trigger_input_controller.dart';
+import 'core/constant.dart';
 import 'modal/suggestion_info.dart';
 
 class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
@@ -40,9 +41,10 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
     this.scrollController,
     this.autofillHints,
     this.hideSuggestionList = false,
+
     required this.controller,
     required this.initSuggestList,
-    this.onKeywordChanged,
+    required this.onMentionSearchChanged,
   });
 
   final TriggerInputController controller;
@@ -51,7 +53,7 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
 
   final bool hideSuggestionList;
 
-  final Function(String)? onKeywordChanged;
+  final SuggestionExecuteCallback<T> onMentionSearchChanged;
 
   /// Focus node for controlling the focus of the Input.
   final FocusNode? focusNode;
@@ -195,15 +197,30 @@ class TriggerInputFieldState extends State<TriggerInputField> {
   }
 
   void _inputListeners() {
-    if (widget.controller.state.selectedMentionLengths.value?.displayStr
-        case final String str?) {
-      final keyword = str;
-      widget.onKeywordChanged?.call(keyword);
-      widget.controller.onMentionSearchChanged(
-        trigger: str[0],
-        keyword: keyword.substring(1),
-        canMentions: widget.controller.state.canMentions.value,
+    final mentionState = widget.controller.state.selectedMentionLengths.value;
+
+    if (mentionState?.displayStr case final String triggeredKey?) {
+      final textController = widget.controller.tfController;
+
+      final triggerSymbol = triggeredKey[0];
+      final keyword = triggeredKey.substring(1);
+
+      final cursorPos = textController.selection.baseOffset;
+      final triggerPos = cursorPos - triggeredKey.length + 1;
+
+      final bool isOverlapping = textController.mentionedStrs.any(
+        (m) => m.start < triggerPos && triggerPos <= m.end,
       );
+
+      bool shouldShowSuggestions = triggerPos <= 0 || !isOverlapping;
+
+      if (shouldShowSuggestions) {
+        widget.controller.state.suggestionInfos.value = widget
+            .onMentionSearchChanged
+            .call(triggerSymbol, keyword);
+      }
+    } else if (widget.controller.state.suggestionInfos.value.isNotEmpty) {
+      widget.controller.state.suggestionInfos.value = [];
     }
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 
 import 'routes/app_routes.dart';
 
@@ -24,7 +23,6 @@ class _MyAppState extends State<MyApp> {
         GlobalMaterialLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
-        FlutterQuillLocalizations.delegate,
       ],
       initialRoute: AppRoutes.home,
       routes: AppRoutes.getRoutes(),

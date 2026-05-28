@@ -9,7 +9,10 @@ class KeywordPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (keyword.isEmpty) return SizedBox.shrink();
 
+    final keywordScrollController = ScrollController();
+
     return Container(
+      height: 200,
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -17,45 +20,51 @@ class KeywordPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Flexible(
-            flex: 1,
+          Row(
+            children: [
+              Text("Trigger:",
+                  style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(width: 8),
+              Text(
+                keyword.substring(0, 1),
+                style: TextStyle(
+                    color: Colors.blue.shade900, fontWeight: FontWeight.w600),
+              )
+            ],
+          ),
+          Divider(color: Colors.grey.shade300, height: 20),
+          Expanded(
             child: Row(
               children: [
-                Text("Trigger:",
-                    style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
                 Text(
-                  keyword.substring(0, 1),
+                  "Keyword:",
                   style: TextStyle(
-                      color: Colors.blue.shade900, fontWeight: FontWeight.w600),
-                )
-              ],
-            ),
-          ),
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16),
-            height: 10,
-            width: 1,
-            color: Colors.black,
-          ),
-          Flexible(
-            flex: 3,
-            child: Row(
-              children: [
-                Text("Keyword:",
-                    style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.bold)),
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Text(
-                  keyword.substring(1),
-                  style: TextStyle(
-                      color: Colors.blue.shade900, fontWeight: FontWeight.w600),
-                )
+                Expanded(
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    controller: keywordScrollController,
+                    child: SingleChildScrollView(
+                      controller: keywordScrollController,
+                      physics: BouncingScrollPhysics(),
+                      child: Text(
+                        keyword.substring(1),
+                        style: TextStyle(
+                          color: Colors.blue.shade900,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
