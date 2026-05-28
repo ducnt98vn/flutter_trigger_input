@@ -18,20 +18,9 @@ class TriggerState<T extends SuggestionInfo> {
     [],
   );
 
-  /// List of users or items that are available to be mentioned.
-  final SafeValueNotifier<List<T>> canMentions = SafeValueNotifier<List<T>>([]);
-
   /// Configuration for different mention types (e.g., '@' for users, '#' for topics).
-  // final SafeValueNotifier<List<Mention>> mentions =
-  //     SafeValueNotifier<List<Mention>>([
-  //       Mention(
-  //         trigger: '@',
-  //         style: const TextStyle(color: Colors.green),
-  //         markupBuilder: (trigger, mention, value) =>
-  //             Bbob.createMentionBbob(id: mention, name: value),
-  //         data: [],
-  //       ),
-  //     ]);
+  final SafeValueNotifier<List<Mention<T>>> triggers =
+      SafeValueNotifier<List<Mention<T>>>([]);
 
   /// Tracks the specific mention item currently being interacted with (e.g., during editing).
   final SafeValueNotifier<LengthMap?> _selectedMentionLengths =

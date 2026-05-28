@@ -13,6 +13,13 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
   final mentionTextRenderer = MentionTextRenderer();
   final suggestionListenerC = SuggestionListener();
 
+  TriggerInputController({List<Mention<T>>? triggers}) {
+    if (triggers != null) {
+      state.triggers.value = triggers;
+      tfController.triggerConfigs = triggers;
+    }
+  }
+
   void suggestMentionDispose() {
     state.selectedMentionInfos.dispose();
     state.suggestionInfos.dispose();
@@ -40,10 +47,22 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
       currentText.length,
     );
 
-    // Currently hardcoded to '@', consider making this configurable if needed.
-    final mentionDisplay = '@${value.suggestionName}';
+    final trigger = selectedMention.displayStr.isNotEmpty
+        ? selectedMention.displayStr[0]
+        : '@';
+
+    final mentionConfig = state.triggers.value.firstWhere(
+      (element) => element.trigger == trigger,
+      orElse: () => Mention<T>(trigger: trigger),
+    );
+
+    final mentionDisplay = '$trigger${value.suggestionName}';
     final suffix = state.appendSpaceOnAdd ? ' ' : '';
     final fullReplaceStr = '$mentionDisplay$suffix';
+
+    final originStr = mentionConfig.markupBuilder != null
+        ? mentionConfig.markupBuilder!(trigger, value.id, value.name)
+        : BbCode.createMentionBbob(trigger: trigger, name: value.name, id: value.id);
 
     // Synchronize cache to prevent jumpy UI during renderMentionListener
     state.cacheDisplayText = currentText.replaceRange(
@@ -67,7 +86,7 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
         start: replaceStart,
         end: replaceStart + mentionDisplay.length,
         displayStr: mentionDisplay,
-        originStr: BbCode.createMentionBbob(name: value.name, id: value.id),
+        originStr: originStr,
       ),
       appendSpaceOnAdd: state.appendSpaceOnAdd,
     );
@@ -76,12 +95,19 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
   }
 
   /// Inserts an entity at the very beginning of the text field.
-  void insertEntityAtStart({required T entity}) {
-    final mentionDisplay = '@${entity.name}';
-    final bbcode = BbCode.createMentionBbob(id: entity.id, name: entity.name);
+  void insertEntityAtStart({required T entity, String trigger = '@'}) {
+    final mentionConfig = state.triggers.value.firstWhere(
+      (element) => element.trigger == trigger,
+      orElse: () => Mention<T>(trigger: trigger),
+    );
+
+    final mentionDisplay = '$trigger${entity.name}';
+    final originStr = mentionConfig.markupBuilder != null
+        ? mentionConfig.markupBuilder!(trigger, entity.id, entity.name)
+        : BbCode.createMentionBbob(trigger: trigger, id: entity.id, name: entity.name);
 
     // Prevent duplicate insertion of the same entity if it's already there
-    final exists = tfController.mentionedStrs.any((e) => e.originStr == bbcode);
+    final exists = tfController.mentionedStrs.any((e) => e.originStr == originStr);
     if (exists) return;
 
     final currentText = tfController.text;
@@ -101,7 +127,7 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
         start: 0,
         end: mentionDisplay.length,
         displayStr: mentionDisplay,
-        originStr: bbcode,
+        originStr: originStr,
       ),
       appendSpaceOnAdd: state.appendSpaceOnAdd,
     );
@@ -118,7 +144,11 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
   }
 
   void suggestionListener() {
-    final result = suggestionListenerC.execute(tfController: tfController);
+    final triggerSymbols = state.triggers.value.map((e) => e.trigger).toList();
+    final result = suggestionListenerC.execute(
+      tfController: tfController,
+      triggerSymbols: triggerSymbols.isEmpty ? ['@'] : triggerSymbols,
+    );
     state.setSelectedMentionLengths(result);
   }
 

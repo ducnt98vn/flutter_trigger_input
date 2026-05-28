@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_trigger_input/src/modal/annotation.dart';
+import 'package:flutter_trigger_input/src/modal/mention.dart';
 import 'package:flutter_trigger_input/src/modal/length_map.dart';
 import 'package:flutter_trigger_input/src/utils/bbcode.dart';
 import 'package:flutter_trigger_input/extensions/list_ext.dart';
@@ -10,18 +10,12 @@ class TFController extends TextEditingController {
     fontWeight: FontWeight.bold,
     backgroundColor: Colors.pinkAccent,
   );
-  Map<String, Annotation> _mapping = {};
+  Map<String, Mention> _triggerConfigs = {};
 
   List<LengthMap> mentionedStrs = [];
 
-  final emptyMentionLength = BbCode.createMentionBbob().length;
-
-  // Map<String, Annotation> get mapping {
-  //   return _mapping;
-  // }
-
-  set mapping(Map<String, Annotation> newData) {
-    _mapping = newData;
+  set triggerConfigs(List<Mention> configs) {
+    _triggerConfigs = {for (var c in configs) c.trigger: c};
   }
 
   TFController();
@@ -153,8 +147,8 @@ class TFController extends TextEditingController {
         children.add(
           TextSpan(
             text: markupResult.substring(entity.start, entity.end),
-            style: _mapping.containsKey(entity.trigger)
-                ? _mapping[entity.trigger]?.style
+            style: _triggerConfigs.containsKey(entity.trigger)
+                ? _triggerConfigs[entity.trigger]?.style
                 : style?.merge(baseEntityTextStyle),
           ),
         );

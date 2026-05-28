@@ -43,13 +43,10 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
     this.hideSuggestionList = false,
 
     required this.controller,
-    required this.initSuggestList,
     required this.onMentionSearchChanged,
   });
 
   final TriggerInputController controller;
-
-  final List<T> initSuggestList;
 
   final bool hideSuggestionList;
 
@@ -161,8 +158,6 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
 class TriggerInputFieldState extends State<TriggerInputField> {
   @override
   void initState() {
-    widget.controller.state.canMentions.value = widget.initSuggestList;
-
     widget.controller.tfController.addListener(
       () => widget.controller.renderMentionListener(),
     );
@@ -206,13 +201,13 @@ class TriggerInputFieldState extends State<TriggerInputField> {
       final keyword = triggeredKey.substring(1);
 
       final cursorPos = textController.selection.baseOffset;
-      final triggerPos = cursorPos - triggeredKey.length + 1;
+      final triggerStartPos = cursorPos - triggeredKey.length;
 
       final bool isOverlapping = textController.mentionedStrs.any(
-        (m) => m.start < triggerPos && triggerPos <= m.end,
+        (m) => triggerStartPos < m.end && cursorPos > m.start,
       );
 
-      bool shouldShowSuggestions = triggerPos <= 0 || !isOverlapping;
+      bool shouldShowSuggestions = !isOverlapping;
 
       if (shouldShowSuggestions) {
         widget.controller.state.suggestionInfos.value = widget

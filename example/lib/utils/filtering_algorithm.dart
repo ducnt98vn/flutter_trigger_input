@@ -2,24 +2,23 @@ import 'package:flutter_trigger_input/extensions/string_ext.dart';
 import 'package:flutter_trigger_input/flutter_trigger_input.dart';
 
 class FilteringAlgorithm {
+  /// Thực hiện lọc danh sách dựa trên từ khóa.
+  /// Trả về một danh sách mới chứa kết quả đã lọc.
   List<SuggestionInfo> execute(
     String trigger,
     String keyword,
-    List<SuggestionInfo> suggestionInfos,
-    List<SuggestionInfo> newCanMentions,
+    List<SuggestionInfo> sourceMentions,
   ) {
+    if (sourceMentions.isEmpty) return [];
+
     final normalizedKeyword = keyword.trim().toLowerCase();
 
-    final canMentions = newCanMentions;
-
-    List<SuggestionInfo> currentSuggestions = suggestionInfos;
-    currentSuggestions.clear();
-
-    if (_shouldReturnEmpty(canMentions, keyword, normalizedKeyword)) {
-      return currentSuggestions;
+    if (_shouldReturnEmpty(sourceMentions, keyword, normalizedKeyword)) {
+      return [];
     }
 
-    final baseSuggestions = [...canMentions]..removeAt(0);
+    // Tạo bản sao để tránh thay đổi danh sách gốc
+    final baseSuggestions = List<SuggestionInfo>.from(sourceMentions);
 
     final filteredSuggestions =
         _filterSuggestions(baseSuggestions, normalizedKeyword);
@@ -32,14 +31,7 @@ class FilteringAlgorithm {
 
     scoredSuggestions.sort((a, b) => b.score - a.score);
 
-    if (scoredSuggestions.isEmpty) {
-      scoredSuggestions.clear();
-      currentSuggestions.clear();
-    } else {
-      currentSuggestions = scoredSuggestions;
-    }
-
-    return currentSuggestions;
+    return scoredSuggestions;
   }
 
   bool _shouldReturnEmpty(
@@ -75,8 +67,10 @@ class FilteringAlgorithm {
 
     for (final member in mentions) {
       if (seenIds.add(member.id)) {
-        member.name = member.suggestionName.removeVietnameseAccent();
-        result.add(member);
+        // Cần clone object để tránh thay đổi name của object gốc trong source
+        final clone = SuggestionInfo(id: member.id, name: member.name, score: member.score);
+        clone.name = member.suggestionName.removeVietnameseAccent();
+        result.add(clone);
       }
     }
 

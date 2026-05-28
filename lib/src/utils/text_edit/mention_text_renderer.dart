@@ -184,15 +184,19 @@ class MentionTextRenderer {
         if (node.tag == 'mention') {
           final name = node.attributes['name'] ?? '';
           final id = node.attributes['id'] ?? '';
-          final displayStr = '@$name';
+          final trigger = node.attributes['trigger'] ?? '@';
+          final displayStr = '$trigger$name';
 
           mentions.add(LengthMap(
             start: plainTextBuffer.length,
             end: plainTextBuffer.length + displayStr.length,
             displayStr: displayStr,
-            originStr: BbCode.createMentionBbob(id: id, name: name),
+            originStr: BbCode.createMentionBbob(trigger: trigger, id: id, name: name),
           ));
 
+          plainTextBuffer.write(displayStr);
+        } else if (node.tag == 'link') {
+          final displayStr = node.textContent;
           plainTextBuffer.write(displayStr);
         } else {
           plainTextBuffer.write(node.textContent);
