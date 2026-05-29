@@ -158,7 +158,8 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
   TriggerInputFieldState<T> createState() => TriggerInputFieldState<T>();
 }
 
-class TriggerInputFieldState<T extends SuggestionInfo> extends State<TriggerInputField<T>> {
+class TriggerInputFieldState<T extends SuggestionInfo>
+    extends State<TriggerInputField<T>> {
   @override
   void initState() {
     widget.controller.state.allowSpace = widget.allowSpace;

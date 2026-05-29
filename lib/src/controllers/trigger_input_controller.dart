@@ -62,7 +62,11 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
 
     final originStr = mentionConfig.markupBuilder != null
         ? mentionConfig.markupBuilder!(trigger, value.id, value.name)
-        : BbCode.createMentionBbob(trigger: trigger, name: value.name, id: value.id);
+        : BbCode.createMentionBbob(
+            trigger: trigger,
+            name: value.name,
+            id: value.id,
+          );
 
     // Synchronize cache to prevent jumpy UI during renderMentionListener
     state.cacheDisplayText = currentText.replaceRange(
@@ -104,10 +108,16 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
     final mentionDisplay = '$trigger${entity.name}';
     final originStr = mentionConfig.markupBuilder != null
         ? mentionConfig.markupBuilder!(trigger, entity.id, entity.name)
-        : BbCode.createMentionBbob(trigger: trigger, id: entity.id, name: entity.name);
+        : BbCode.createMentionBbob(
+            trigger: trigger,
+            id: entity.id,
+            name: entity.name,
+          );
 
     // Prevent duplicate insertion of the same entity if it's already there
-    final exists = tfController.mentionedStrs.any((e) => e.originStr == originStr);
+    final exists = tfController.mentionedStrs.any(
+      (e) => e.originStr == originStr,
+    );
     if (exists) return;
 
     final currentText = tfController.text;

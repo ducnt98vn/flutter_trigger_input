@@ -52,17 +52,26 @@ class MentionTextRenderer {
         // 1. Trường hợp có vùng chọn (Selection): Thay thế vùng chọn bằng văn bản mới (hoặc rỗng nếu xoá)
         replaceStart = cacheSelection.start;
         replaceEnd = cacheSelection.end;
-        newStr = text.substring(replaceStart, selection.end.clamp(replaceStart, textLen));
+        newStr = text.substring(
+          replaceStart,
+          selection.end.clamp(replaceStart, textLen),
+        );
       } else if (textLen > cacheLen) {
         // 2. Trường hợp Thêm (Insertion) tại con trỏ
         replaceStart = cacheSelection.start;
         replaceEnd = cacheSelection.start;
 
         // Xử lý bộ gõ tiếng Việt hoặc nhập liệu phức tạp (ví dụ: 'a' + 's' -> 'á')
-        final typedPortion = text.substring(cacheSelection.start, selection.end);
+        final typedPortion = text.substring(
+          cacheSelection.start,
+          selection.end,
+        );
         if (typedPortion.trim().isNotEmpty) {
           // Tìm ranh giới từ để xác định chính xác phần nào trong từ đã thay đổi
-          final wordStart = _findWordStart(cacheDisplayText, cacheSelection.start);
+          final wordStart = _findWordStart(
+            cacheDisplayText,
+            cacheSelection.start,
+          );
           final diff = TextDiff.execute(
             leftStr: cacheDisplayText.substring(wordStart, cacheSelection.end),
             rightStr: text.substring(wordStart, selection.end),
@@ -88,7 +97,10 @@ class MentionTextRenderer {
         }
       } else {
         // 4. Trường hợp Thay thế (Replacement) cùng độ dài (ví dụ: thay đổi dấu mà không di chuyển con trỏ)
-        final diff = TextDiff.execute(leftStr: cacheDisplayText, rightStr: text);
+        final diff = TextDiff.execute(
+          leftStr: cacheDisplayText,
+          rightStr: text,
+        );
         replaceStart = diff.leftStr.start;
         replaceEnd = diff.leftStr.end;
         newStr = diff.rightStr.displayStr;
@@ -100,12 +112,14 @@ class MentionTextRenderer {
 
       // Cập nhật Mentions dựa trên phép thay thế
       final List<LengthMap> tempMentions = tfController.mentionedStrs
-          .map((m) => LengthMap(
-                start: m.start,
-                end: m.end,
-                displayStr: m.displayStr,
-                originStr: m.originStr,
-              ))
+          .map(
+            (m) => LengthMap(
+              start: m.start,
+              end: m.end,
+              displayStr: m.displayStr,
+              originStr: m.originStr,
+            ),
+          )
           .toList();
       int difference = newStr.length - (replaceEnd - replaceStart);
 
@@ -124,7 +138,10 @@ class MentionTextRenderer {
 
         // Phép thay thế đè lên mention (Overlap)
         // Bổ sung logic "Atomic Entity Deletion": Nếu xoá một phần mention, tự động xoá toàn bộ
-        if (newStr.isEmpty && (replaceStart > mention.start || (replaceStart == mention.start && replaceEnd > mention.start))) {
+        if (newStr.isEmpty &&
+            (replaceStart > mention.start ||
+                (replaceStart == mention.start &&
+                    replaceEnd > mention.start))) {
           final int mentionLen = mention.end - mention.start;
           replaceStart = mention.start;
           replaceEnd = mention.end;
@@ -136,7 +153,11 @@ class MentionTextRenderer {
       }
 
       // Tạo văn bản kết quả
-      final resultText = cacheDisplayText.replaceRange(replaceStart, replaceEnd, newStr);
+      final resultText = cacheDisplayText.replaceRange(
+        replaceStart,
+        replaceEnd,
+        newStr,
+      );
 
       // Nếu văn bản kết quả khớp với controller, tin tưởng selection của controller (IME)
       final resultSelection = (resultText == text)
@@ -194,12 +215,18 @@ class MentionTextRenderer {
           final trigger = node.attributes['trigger'] ?? '@';
           final displayStr = '$trigger$name';
 
-          mentions.add(LengthMap(
-            start: plainTextBuffer.length,
-            end: plainTextBuffer.length + displayStr.length,
-            displayStr: displayStr,
-            originStr: BbCode.createMentionBbob(trigger: trigger, id: id, name: name),
-          ));
+          mentions.add(
+            LengthMap(
+              start: plainTextBuffer.length,
+              end: plainTextBuffer.length + displayStr.length,
+              displayStr: displayStr,
+              originStr: BbCode.createMentionBbob(
+                trigger: trigger,
+                id: id,
+                name: name,
+              ),
+            ),
+          );
 
           plainTextBuffer.write(displayStr);
         } else if (node.tag == 'link') {

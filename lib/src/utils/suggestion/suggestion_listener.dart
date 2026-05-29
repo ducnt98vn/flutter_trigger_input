@@ -31,7 +31,7 @@ class SuggestionListener {
         if (!allowSpace && currentCharacter.trim().isEmpty) {
           break;
         }
-        
+
         // Even if allowSpace is true, we might want to stop at newlines or multiple spaces
         if (currentCharacter == '\n') {
           break;
@@ -50,7 +50,8 @@ class SuggestionListener {
       );
     }
 
-    if (isInsideExistingMention(triggerPos) || isInsideExistingMention(cursorPos)) {
+    if (isInsideExistingMention(triggerPos) ||
+        isInsideExistingMention(cursorPos)) {
       return null;
     }
 

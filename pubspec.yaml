@@ -1,6 +1,6 @@
 name: flutter_trigger_input
 description: A powerful Flutter widget for detecting and handling triggers like mentions (@), and links. Supports deletion, and flexible suggestion engines.
-version: 0.2.0
+version: 0.3.0
 repository: https://github.com/ducnt98vn/flutter_trigger_input
 issue_tracker: https://github.com/ducnt98vn/flutter_trigger_input/issues
 

@@ -24,11 +24,26 @@ void main() {
     group(groupName, () {
       for (var tc in cases) {
         test(tc.description, () {
-          final result = TextDiff.execute(leftStr: tc.leftStr, rightStr: tc.rightStr);
-          expect(result.leftStr.displayStr, tc.expectedLeftDisplay, reason: 'Left display mismatch');
-          expect(result.rightStr.displayStr, tc.expectedRightDisplay, reason: 'Right display mismatch');
+          final result = TextDiff.execute(
+            leftStr: tc.leftStr,
+            rightStr: tc.rightStr,
+          );
+          expect(
+            result.leftStr.displayStr,
+            tc.expectedLeftDisplay,
+            reason: 'Left display mismatch',
+          );
+          expect(
+            result.rightStr.displayStr,
+            tc.expectedRightDisplay,
+            reason: 'Right display mismatch',
+          );
           if (tc.expectedRightStart != null) {
-            expect(result.rightStr.start, tc.expectedRightStart, reason: 'Right start mismatch');
+            expect(
+              result.rightStr.start,
+              tc.expectedRightStart,
+              reason: 'Right start mismatch',
+            );
           }
         });
       }

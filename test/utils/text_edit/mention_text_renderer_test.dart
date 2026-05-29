@@ -49,17 +49,41 @@ void main() {
             cacheSelection: tc.cacheSelection,
           );
 
-          expect(result.cacheDisplayText, tc.expectedText, reason: 'Text mismatch in: ${tc.description}');
-          expect(result.selection.extentOffset, tc.expectedOffset, reason: 'Selection offset mismatch in: ${tc.description}');
-          expect(result.mentionedStrs.length, tc.expectedMentionCount, reason: 'Mention count mismatch in: ${tc.description}');
-          
+          expect(
+            result.cacheDisplayText,
+            tc.expectedText,
+            reason: 'Text mismatch in: ${tc.description}',
+          );
+          expect(
+            result.selection.extentOffset,
+            tc.expectedOffset,
+            reason: 'Selection offset mismatch in: ${tc.description}',
+          );
+          expect(
+            result.mentionedStrs.length,
+            tc.expectedMentionCount,
+            reason: 'Mention count mismatch in: ${tc.description}',
+          );
+
           if (tc.expectedMentionDetails != null) {
             for (int i = 0; i < tc.expectedMentionDetails!.length; i++) {
               final expected = tc.expectedMentionDetails![i];
               final actual = result.mentionedStrs[i];
-              expect(actual.start, expected['start'], reason: 'Mention $i start mismatch');
-              expect(actual.end, expected['end'], reason: 'Mention $i end mismatch');
-              expect(actual.displayStr, expected['displayStr'], reason: 'Mention $i displayStr mismatch');
+              expect(
+                actual.start,
+                expected['start'],
+                reason: 'Mention $i start mismatch',
+              );
+              expect(
+                actual.end,
+                expected['end'],
+                reason: 'Mention $i end mismatch',
+              );
+              expect(
+                actual.displayStr,
+                expected['displayStr'],
+                reason: 'Mention $i displayStr mismatch',
+              );
             }
           }
         });
@@ -75,12 +99,23 @@ void main() {
       newText: "Hi ! Hello #flutter",
       newSelection: const TextSelection.collapsed(offset: 5),
       initialMentions: [
-        LengthMap(start: 6, end: 14, displayStr: '#flutter', originStr: BbCode.createMentionBbob(trigger: '#', id: '1', name: 'flutter')),
+        LengthMap(
+          start: 6,
+          end: 14,
+          displayStr: '#flutter',
+          originStr: BbCode.createMentionBbob(
+            trigger: '#',
+            id: '1',
+            name: 'flutter',
+          ),
+        ),
       ],
       expectedText: "Hi ! Hello #flutter",
       expectedOffset: 5,
       expectedMentionCount: 1,
-      expectedMentionDetails: [{'start': 11, 'end': 19, 'displayStr': '#flutter'}],
+      expectedMentionDetails: [
+        {'start': 11, 'end': 19, 'displayStr': '#flutter'},
+      ],
     ),
     TestCase(
       description: '2. Xoá một phần hashtag (Xoá lùi) -> Xoá toàn bộ',
@@ -89,20 +124,39 @@ void main() {
       newText: "#flutte",
       newSelection: const TextSelection.collapsed(offset: 7),
       initialMentions: [
-        LengthMap(start: 0, end: 8, displayStr: '#flutter', originStr: BbCode.createMentionBbob(trigger: '#', id: '1', name: 'flutter')),
+        LengthMap(
+          start: 0,
+          end: 8,
+          displayStr: '#flutter',
+          originStr: BbCode.createMentionBbob(
+            trigger: '#',
+            id: '1',
+            name: 'flutter',
+          ),
+        ),
       ],
       expectedText: "",
       expectedOffset: 0,
       expectedMentionCount: 0,
     ),
     TestCase(
-      description: '3. Thay thế một phần hashtag bằng text khác -> Xoá metadata',
+      description:
+          '3. Thay thế một phần hashtag bằng text khác -> Xoá metadata',
       cacheText: "Love #dart",
       cacheSelection: const TextSelection(baseOffset: 5, extentOffset: 10),
       newText: "Love #java",
       newSelection: const TextSelection.collapsed(offset: 10),
       initialMentions: [
-        LengthMap(start: 5, end: 10, displayStr: '#dart', originStr: BbCode.createMentionBbob(trigger: '#', id: '2', name: 'dart')),
+        LengthMap(
+          start: 5,
+          end: 10,
+          displayStr: '#dart',
+          originStr: BbCode.createMentionBbob(
+            trigger: '#',
+            id: '2',
+            name: 'dart',
+          ),
+        ),
       ],
       expectedText: "Love #java",
       expectedOffset: 10,
@@ -115,8 +169,26 @@ void main() {
       newText: "@user and #news",
       newSelection: const TextSelection.collapsed(offset: 10),
       initialMentions: [
-        LengthMap(start: 0, end: 5, displayStr: '@user', originStr: BbCode.createMentionBbob(trigger: '@', id: '1', name: 'user')),
-        LengthMap(start: 6, end: 11, displayStr: '#news', originStr: BbCode.createMentionBbob(trigger: '#', id: '2', name: 'news')),
+        LengthMap(
+          start: 0,
+          end: 5,
+          displayStr: '@user',
+          originStr: BbCode.createMentionBbob(
+            trigger: '@',
+            id: '1',
+            name: 'user',
+          ),
+        ),
+        LengthMap(
+          start: 6,
+          end: 11,
+          displayStr: '#news',
+          originStr: BbCode.createMentionBbob(
+            trigger: '#',
+            id: '2',
+            name: 'news',
+          ),
+        ),
       ],
       expectedText: "@user and #news",
       expectedOffset: 10,
@@ -133,12 +205,19 @@ void main() {
       description: 'Dán (Paste) đoạn text chứa BBCode',
       cacheText: "",
       cacheSelection: const TextSelection.collapsed(offset: 0),
-      newText: "Check ${BbCode.createMentionBbob(trigger: '@', id: 'u1', name: 'John')}",
-      newSelection: TextSelection.collapsed(offset: "Check ${BbCode.createMentionBbob(trigger: '@', id: 'u1', name: 'John')}".length),
+      newText:
+          "Check ${BbCode.createMentionBbob(trigger: '@', id: 'u1', name: 'John')}",
+      newSelection: TextSelection.collapsed(
+        offset:
+            "Check ${BbCode.createMentionBbob(trigger: '@', id: 'u1', name: 'John')}"
+                .length,
+      ),
       expectedText: "Check @John",
       expectedOffset: 11,
       expectedMentionCount: 1,
-      expectedMentionDetails: [{'start': 6, 'end': 11, 'displayStr': '@John'}],
+      expectedMentionDetails: [
+        {'start': 6, 'end': 11, 'displayStr': '@John'},
+      ],
     ),
     TestCase(
       description: 'Thêm text vào SAU một mention',
@@ -147,7 +226,16 @@ void main() {
       newText: "@John is back",
       newSelection: const TextSelection.collapsed(offset: 13),
       initialMentions: [
-        LengthMap(start: 0, end: 5, displayStr: '@John', originStr: BbCode.createMentionBbob(trigger: '@', id: 'u1', name: 'John')),
+        LengthMap(
+          start: 0,
+          end: 5,
+          displayStr: '@John',
+          originStr: BbCode.createMentionBbob(
+            trigger: '@',
+            id: 'u1',
+            name: 'John',
+          ),
+        ),
       ],
       expectedText: "@John is back",
       expectedOffset: 13,
@@ -160,7 +248,16 @@ void main() {
       newText: "@Joh",
       newSelection: const TextSelection.collapsed(offset: 4),
       initialMentions: [
-        LengthMap(start: 0, end: 5, displayStr: '@John', originStr: BbCode.createMentionBbob(trigger: '@', id: 'u1', name: 'John')),
+        LengthMap(
+          start: 0,
+          end: 5,
+          displayStr: '@John',
+          originStr: BbCode.createMentionBbob(
+            trigger: '@',
+            id: 'u1',
+            name: 'John',
+          ),
+        ),
       ],
       expectedText: "",
       expectedOffset: 0,
@@ -176,12 +273,23 @@ void main() {
       newText: "Hello@John",
       newSelection: const TextSelection.collapsed(offset: 5),
       initialMentions: [
-        LengthMap(start: 6, end: 11, displayStr: '@John', originStr: BbCode.createMentionBbob(trigger: '@', id: 'u1', name: 'John')),
+        LengthMap(
+          start: 6,
+          end: 11,
+          displayStr: '@John',
+          originStr: BbCode.createMentionBbob(
+            trigger: '@',
+            id: 'u1',
+            name: 'John',
+          ),
+        ),
       ],
       expectedText: "Hello@John",
       expectedOffset: 5,
       expectedMentionCount: 1,
-      expectedMentionDetails: [{'start': 5, 'end': 10, 'displayStr': '@John'}],
+      expectedMentionDetails: [
+        {'start': 5, 'end': 10, 'displayStr': '@John'},
+      ],
     ),
     TestCase(
       description: 'Nhập ký tự trùng với ký tự đầu của mention',
@@ -190,12 +298,23 @@ void main() {
       newText: "@@James",
       newSelection: const TextSelection.collapsed(offset: 1),
       initialMentions: [
-        LengthMap(start: 0, end: 6, displayStr: '@James', originStr: BbCode.createMentionBbob(trigger: '@', id: 'u1', name: 'James')),
+        LengthMap(
+          start: 0,
+          end: 6,
+          displayStr: '@James',
+          originStr: BbCode.createMentionBbob(
+            trigger: '@',
+            id: 'u1',
+            name: 'James',
+          ),
+        ),
       ],
       expectedText: "@@James",
       expectedOffset: 1,
       expectedMentionCount: 1,
-      expectedMentionDetails: [{'start': 1, 'end': 7, 'displayStr': '@James'}],
+      expectedMentionDetails: [
+        {'start': 1, 'end': 7, 'displayStr': '@James'},
+      ],
     ),
     TestCase(
       description: 'Case emoji xen kẽ mention: "Hi @James 🔥"',
@@ -209,7 +328,9 @@ void main() {
       expectedText: "Hi @James 🔥 updated",
       expectedOffset: 20,
       expectedMentionCount: 1,
-      expectedMentionDetails: [{'start': 3, 'end': 9, 'displayStr': '@James'}],
+      expectedMentionDetails: [
+        {'start': 3, 'end': 9, 'displayStr': '@James'},
+      ],
     ),
     TestCase(
       description: 'Mention nằm ở dòng thứ 2 (Text đa dòng)',
@@ -223,7 +344,9 @@ void main() {
       expectedText: "Line1 - updated\n@John",
       expectedOffset: 15,
       expectedMentionCount: 1,
-      expectedMentionDetails: [{'start': 16, 'end': 21, 'displayStr': '@John'}],
+      expectedMentionDetails: [
+        {'start': 16, 'end': 21, 'displayStr': '@John'},
+      ],
     ),
   ]);
 
@@ -235,7 +358,16 @@ void main() {
       newText: "[mention trigger=\"@\" id=\"new_id\" name=\"John\"][/mention]",
       newSelection: const TextSelection.collapsed(offset: 55),
       initialMentions: [
-        LengthMap(start: 0, end: 5, displayStr: '@John', originStr: BbCode.createMentionBbob(trigger: '@', id: 'old_id', name: 'John')),
+        LengthMap(
+          start: 0,
+          end: 5,
+          displayStr: '@John',
+          originStr: BbCode.createMentionBbob(
+            trigger: '@',
+            id: 'old_id',
+            name: 'John',
+          ),
+        ),
       ],
       expectedText: "@John",
       expectedOffset: 5,

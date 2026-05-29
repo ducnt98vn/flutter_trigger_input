@@ -68,7 +68,8 @@ class FilteringAlgorithm {
     for (final member in mentions) {
       if (seenIds.add(member.id)) {
         // Cần clone object để tránh thay đổi name của object gốc trong source
-        final clone = SuggestionInfo(id: member.id, name: member.name, score: member.score);
+        final clone = SuggestionInfo(
+            id: member.id, name: member.name, score: member.score);
         clone.name = member.suggestionName.removeVietnameseAccent();
         result.add(clone);
       }

@@ -3,7 +3,7 @@
 <div align="center">
   <img src="https://github.com/ducnt98vn/flutter_trigger_input/blob/main/screenshots/demo.png?raw=true" 
        alt="A screenshot of the iOS example app" 
-       width="300"/>
+       width="240"/>
 </div>
 
 A highly customizable Flutter widget for detecting and handling interactive triggers like mentions, hashtags, and links within a text field. It offers a seamless way to manage suggestion overlays with full generic type support and built-in markup parsing.

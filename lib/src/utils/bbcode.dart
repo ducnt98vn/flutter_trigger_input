@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_trigger_input/src/modal/length_map.dart';
 
 class BbCode {
-  /// Tạo chuỗi BBCode cho mention/trigger. 
+  /// Tạo chuỗi BBCode cho mention/trigger.
   /// Thêm thuộc tính `trigger` để phân biệt @, #, v.v. khi parse ngược.
   static String createMentionBbob({
     String trigger = '@',

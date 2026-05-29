@@ -1,24 +1,20 @@
 # Roadmap
 
-## 0.1.0
+## ✅ Completed
 
-- Initial release.
+- **Multi-Trigger Support**: Support multiple triggers simultaneously (e.g., @mentions, #hashtags, [links]).
+- **Keyword Spaces**: Added `allowSpace` option to support trigger keywords with spaces (e.g., @Full Name).
+- **Atomic Entity Deletion**: Mechanism to delete the entire mention/entity block when any part of it is modified.
+- **Enhanced Core Engine**: Optimized `MentionTextRenderer` for improved efficiency and accurate state synchronization.
+- **IME & Vietnamese Support**: Refined handling for complex input methods and diacritics.
+- **User-defined Filtering**: Customizable algorithm for suggestion filtering and scoring.
+- **Data-Driven Testing**: Comprehensive test suite covering edge cases, CRUD operations, and boundary logic.
+- **Custom Markup**: Support for custom BBCode through `markupBuilder`.
 
-## 0.1.1
+## 🚀 Upcoming
 
-- **Fix**: Added missing generated files (`.g.dart`) to the package distribution to resolve compilation errors.
-
-## 0.2.0 (Upcoming)
-
-- [x] **Atomic Entity Deletion**: Implement a mechanism to delete the entire mention/entity block when any single character within it is deleted.
-- [x] **User-defined filtering algorithm**.
-- [x] **Add basic unit tests**.
-
-## 2.0.0 (Long-term)
-
-- [ ] Custom create bbob.
-- [x] Add example.
-- [ ] Add support for more languages.
-- [ ] **Multi-trigger support (simultaneous @ and #)**.
-- [ ] Add basic Integration Test.
-- [ ] **Copy Raw Mention**: Provide additional options in the context menu when users interact with a completed mention.
+- [ ] **Copy Raw Mention**: Provide additional options in the context menu to copy the raw markup/BBCode of a mention.
+- [ ] **Advanced BBCode Customization**: More flexible tag parsing beyond standard [mention] and [link].
+- [ ] **Integration Tests**: Basic integration tests for real-world usage scenarios.
+- [ ] **Extended Language Support**: Further improvements for RTL languages and complex character sets.
+- [ ] **Context Menu Customization**: Allow users to define custom actions for mentioned entities.
