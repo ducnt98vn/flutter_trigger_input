@@ -99,7 +99,14 @@ class MentionTextRenderer {
       replaceEnd = replaceEnd.clamp(replaceStart, cacheLen);
 
       // Cập nhật Mentions dựa trên phép thay thế
-      final List<LengthMap> tempMentions = List.from(tfController.mentionedStrs);
+      final List<LengthMap> tempMentions = tfController.mentionedStrs
+          .map((m) => LengthMap(
+                start: m.start,
+                end: m.end,
+                displayStr: m.displayStr,
+                originStr: m.originStr,
+              ))
+          .toList();
       int difference = newStr.length - (replaceEnd - replaceStart);
 
       for (int i = 0; i < tempMentions.length; i++) {
@@ -138,7 +145,7 @@ class MentionTextRenderer {
 
       // Đồng bộ từ markup nếu phát hiện BBCode (thường do paste)
       if (BbCode.getMentionsBbobInText(resultText).isNotEmpty) {
-        return _syncFromMarkup(tfController.markupText);
+        return _syncFromMarkup(resultText);
       }
 
       return MentionTextRendererResult(

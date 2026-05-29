@@ -31,8 +31,11 @@ class TriggerState<T extends SuggestionInfo> {
   // Variables to store temporary state for logic optimization and change detection.
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  /// hether to automatically append a space after a tag is selected.
+  /// Whether to automatically append a space after a tag is selected.
   bool appendSpaceOnAdd = true;
+
+  /// Whether to allow spaces in the keyword after a trigger.
+  bool allowSpace = false;
 
   /// Stores the previous selection to detect cursor movement or state changes.
   TextSelection cacheSelection = const TextSelection(

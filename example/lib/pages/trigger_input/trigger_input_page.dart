@@ -171,6 +171,7 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
           ),
           TriggerInputField<SuggestionInfo>(
             controller: _controller,
+            allowSpace: true,
             decoration: const InputDecoration(
               hintText: 'Type @ for users, # for hashtags, [ for links...',
               border: OutlineInputBorder(),

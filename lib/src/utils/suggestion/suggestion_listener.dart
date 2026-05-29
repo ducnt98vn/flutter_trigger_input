@@ -5,6 +5,7 @@ class SuggestionListener {
   LengthMap? execute({
     required TFController tfController,
     List<String> triggerSymbols = const ['@'],
+    bool allowSpace = false,
   }) {
     final cursorPos = tfController.selection.baseOffset;
     final currentText = tfController.value.text;
@@ -26,8 +27,13 @@ class SuggestionListener {
           triggerPos = i;
           break;
         }
-        // Stop if we hit a space - triggers usually don't contain spaces
-        if (currentCharacter.trim().isEmpty) {
+        // Stop if we hit a space and allowSpace is false
+        if (!allowSpace && currentCharacter.trim().isEmpty) {
+          break;
+        }
+        
+        // Even if allowSpace is true, we might want to stop at newlines or multiple spaces
+        if (currentCharacter == '\n') {
           break;
         }
       }

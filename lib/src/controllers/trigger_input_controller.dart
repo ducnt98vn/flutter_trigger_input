@@ -148,6 +148,7 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
     final result = suggestionListenerC.execute(
       tfController: tfController,
       triggerSymbols: triggerSymbols.isEmpty ? ['@'] : triggerSymbols,
+      allowSpace: state.allowSpace,
     );
     state.setSelectedMentionLengths(result);
   }

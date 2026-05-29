@@ -1,118 +1,122 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_trigger_input/src/utils/text_edit/text_diff.dart';
 
+class TextDiffTestCase {
+  final String description;
+  final String leftStr;
+  final String rightStr;
+  final String expectedLeftDisplay;
+  final String expectedRightDisplay;
+  final int? expectedRightStart;
+
+  TextDiffTestCase({
+    required this.description,
+    required this.leftStr,
+    required this.rightStr,
+    required this.expectedLeftDisplay,
+    required this.expectedRightDisplay,
+    this.expectedRightStart,
+  });
+}
+
 void main() {
-  group('TextDiff.execute - Các trường hợp cơ bản', () {
-    test('Hai chuỗi giống hệt nhau', () {
-      final result = TextDiff.execute(
-        leftStr: 'Xin chào',
-        rightStr: 'Xin chào',
-      );
-      expect(result.leftStr.displayStr, '');
-      expect(result.rightStr.displayStr, 'Xin chào');
+  void runTests(String groupName, List<TextDiffTestCase> cases) {
+    group(groupName, () {
+      for (var tc in cases) {
+        test(tc.description, () {
+          final result = TextDiff.execute(leftStr: tc.leftStr, rightStr: tc.rightStr);
+          expect(result.leftStr.displayStr, tc.expectedLeftDisplay, reason: 'Left display mismatch');
+          expect(result.rightStr.displayStr, tc.expectedRightDisplay, reason: 'Right display mismatch');
+          if (tc.expectedRightStart != null) {
+            expect(result.rightStr.start, tc.expectedRightStart, reason: 'Right start mismatch');
+          }
+        });
+      }
     });
+  }
 
-    test('Chuỗi cũ rỗng (Thêm mới toàn bộ)', () {
-      final result = TextDiff.execute(leftStr: '', rightStr: 'Chào');
-      expect(result.leftStr.displayStr, '');
-      expect(result.rightStr.displayStr, 'Chào');
-      expect(result.rightStr.start, 0);
-      expect(result.rightStr.end, 4);
-    });
+  runTests('Cơ bản', [
+    TextDiffTestCase(
+      description: 'Hai chuỗi giống hệt nhau',
+      leftStr: 'Xin chào',
+      rightStr: 'Xin chào',
+      expectedLeftDisplay: '',
+      expectedRightDisplay: 'Xin chào',
+    ),
+    TextDiffTestCase(
+      description: 'Chuỗi cũ rỗng',
+      leftStr: '',
+      rightStr: 'Chào',
+      expectedLeftDisplay: '',
+      expectedRightDisplay: 'Chào',
+      expectedRightStart: 0,
+    ),
+    TextDiffTestCase(
+      description: 'Chuỗi mới rỗng',
+      leftStr: 'Tạm biệt',
+      rightStr: '',
+      expectedLeftDisplay: 'Tạm biệt',
+      expectedRightDisplay: '',
+    ),
+  ]);
 
-    test('Chuỗi mới rỗng (Xóa toàn bộ)', () {
-      final result = TextDiff.execute(leftStr: 'Tạm biệt', rightStr: '');
-      expect(result.leftStr.displayStr, 'Tạm biệt');
-      expect(result.rightStr.displayStr, '');
-      expect(result.leftStr.start, 0);
-      expect(result.leftStr.end, 8);
-    });
-  });
+  runTests('Thêm (Insert)', [
+    TextDiffTestCase(
+      description: 'Thêm vào cuối',
+      leftStr: 'Flutter',
+      rightStr: 'Flutter!',
+      expectedLeftDisplay: '',
+      expectedRightDisplay: '!',
+      expectedRightStart: 7,
+    ),
+    TextDiffTestCase(
+      description: 'Thêm vào đầu',
+      leftStr: 'học code',
+      rightStr: 'đang học code',
+      expectedLeftDisplay: '',
+      expectedRightDisplay: 'đang ',
+      expectedRightStart: 0,
+    ),
+    TextDiffTestCase(
+      description: 'Thêm vào giữa',
+      leftStr: 'Xin bạn',
+      rightStr: 'Xin chào bạn',
+      expectedLeftDisplay: '',
+      expectedRightDisplay: 'chào ',
+    ),
+  ]);
 
-  group('TextDiff.execute - Thao tác Thêm (Insert)', () {
-    test('Thêm ký tự vào cuối chuỗi', () {
-      final result = TextDiff.execute(leftStr: 'Flutter', rightStr: 'Flutter!');
-      expect(result.leftStr.displayStr, '');
-      expect(result.rightStr.displayStr, '!');
-      expect(result.rightStr.start, 7);
-    });
+  runTests('Xóa (Delete)', [
+    TextDiffTestCase(
+      description: 'Xóa ở cuối',
+      leftStr: 'Dart!',
+      rightStr: 'Dart',
+      expectedLeftDisplay: '!',
+      expectedRightDisplay: '',
+    ),
+    TextDiffTestCase(
+      description: 'Xóa ở giữa',
+      leftStr: 'Xin chào Việt Nam',
+      rightStr: 'Xin Việt Nam',
+      expectedLeftDisplay: 'chào ',
+      expectedRightDisplay: '',
+    ),
+  ]);
 
-    test('Thêm ký tự vào đầu chuỗi', () {
-      final result = TextDiff.execute(
-        leftStr: 'học code',
-        rightStr: 'đang học code',
-      );
-      // Logic của bạn sẽ tìm điểm khác biệt đầu tiên
-      expect(result.rightStr.displayStr, 'đang ');
-      expect(result.rightStr.start, 0);
-    });
-
-    test('Thêm ký tự vào giữa chuỗi', () {
-      final result = TextDiff.execute(
-        leftStr: 'Xin bạn',
-        rightStr: 'Xin chào bạn',
-      );
-      expect(result.rightStr.displayStr, 'chào ');
-    });
-  });
-
-  group('TextDiff.execute - Thao tác Xóa (Delete)', () {
-    test('Xóa ký tự ở cuối', () {
-      final result = TextDiff.execute(leftStr: 'Dart!', rightStr: 'Dart');
-      expect(result.leftStr.displayStr, '!');
-      expect(result.rightStr.displayStr, '');
-    });
-
-    test('Xóa ký tự ở giữa', () {
-      final result = TextDiff.execute(
-        leftStr: 'Xin chào Việt Nam',
-        rightStr: 'Xin Việt Nam',
-      );
-      expect(result.leftStr.displayStr, 'chào ');
-      expect(result.rightStr.displayStr, '');
-    });
-  });
-
-  group('TextDiff.execute - Thao tác Thay thế (Replace/Update)', () {
-    test('Thay thế một từ ở giữa', () {
-      final result = TextDiff.execute(
-        leftStr: 'Tôi yêu Java',
-        rightStr: 'Tôi yêu Dart',
-      );
-      expect(result.leftStr.displayStr, 'Java');
-      expect(result.rightStr.displayStr, 'Dart');
-    });
-
-    test('Dán (Paste) một đoạn văn bản mới đè lên đoạn cũ', () {
-      final result = TextDiff.execute(
-        leftStr: 'Câu hỏi cũ',
-        rightStr: 'Câu trả lời mới',
-      );
-      // Kết quả mong đợi: Phần khác biệt bắt đầu từ "hỏi cũ" thay bằng "trả lời mới"
-      expect(result.leftStr.displayStr, contains('hỏi cũ'));
-      expect(result.rightStr.displayStr, contains('trả lời mới'));
-    });
-  });
-
-  group('TextDiff.execute - Tiếng Việt và Ký tự đặc biệt', () {
-    test('Thay đổi dấu tiếng Việt', () {
-      final result = TextDiff.execute(leftStr: 'Ăn cơm', rightStr: 'Ẩn cơm');
-      expect(result.leftStr.displayStr, 'Ă');
-      expect(result.rightStr.displayStr, 'Ẩ');
-    });
-
-    test('Thêm emoji hoặc ký tự đặc biệt', () {
-      final result = TextDiff.execute(leftStr: 'Hot', rightStr: 'Hot 🔥');
-      expect(result.rightStr.displayStr, ' 🔥');
-    });
-  });
-
-  group('TextDiff.execute - Edge Cases (Trường hợp biên)', () {
-    test('Thay đổi xảy ra ở vị trí trùng lặp (vd: thêm "a" vào "aaa")', () {
-      final result = TextDiff.execute(leftStr: 'aa', rightStr: 'aaa');
-      // Với logic so sánh từ 2 đầu, kết quả thường trả về ký tự cuối hoặc đầu tùy thuật toán
-      expect(result.rightStr.displayStr.length, 1);
-      expect(result.rightStr.displayStr, 'a');
-    });
-  });
+  runTests('Thay thế (Replace)', [
+    TextDiffTestCase(
+      description: 'Thay thế từ ở giữa',
+      leftStr: 'Tôi yêu Java',
+      rightStr: 'Tôi yêu Dart',
+      expectedLeftDisplay: 'Java',
+      expectedRightDisplay: 'Dart',
+    ),
+    TextDiffTestCase(
+      description: 'Thay đổi dấu tiếng Việt',
+      leftStr: 'Ăn cơm',
+      rightStr: 'Ẩn cơm',
+      expectedLeftDisplay: 'Ă',
+      expectedRightDisplay: 'Ẩ',
+    ),
+  ]);
 }

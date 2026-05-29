@@ -44,11 +44,14 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
 
     required this.controller,
     required this.onMentionSearchChanged,
+    this.allowSpace = false,
   });
 
   final TriggerInputController controller;
 
   final bool hideSuggestionList;
+
+  final bool allowSpace;
 
   final SuggestionExecuteCallback<T> onMentionSearchChanged;
 
@@ -152,12 +155,14 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
   final Iterable<String>? autofillHints;
 
   @override
-  TriggerInputFieldState createState() => TriggerInputFieldState();
+  TriggerInputFieldState<T> createState() => TriggerInputFieldState<T>();
 }
 
-class TriggerInputFieldState extends State<TriggerInputField> {
+class TriggerInputFieldState<T extends SuggestionInfo> extends State<TriggerInputField<T>> {
   @override
   void initState() {
+    widget.controller.state.allowSpace = widget.allowSpace;
+
     widget.controller.tfController.addListener(
       () => widget.controller.renderMentionListener(),
     );
@@ -169,6 +174,14 @@ class TriggerInputFieldState extends State<TriggerInputField> {
     widget.controller.tfController.addListener(_inputListeners);
 
     super.initState();
+  }
+
+  @override
+  void didUpdateWidget(covariant TriggerInputField<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.allowSpace != oldWidget.allowSpace) {
+      widget.controller.state.allowSpace = widget.allowSpace;
+    }
   }
 
   @override
