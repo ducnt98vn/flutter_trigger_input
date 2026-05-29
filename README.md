@@ -56,7 +56,6 @@ ValueListenableBuilder<List<SuggestionInfo>>(
 ## Credits 👨‍💻
 
 - [bbob_dart](https://pub.dev/packages/bbob_dart)
-- [flutter_quill](https://pub.dev/packages/flutter_quill)
 
 ## Issues and feedback 💭
 

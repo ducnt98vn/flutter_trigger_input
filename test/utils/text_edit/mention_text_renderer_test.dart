@@ -198,6 +198,20 @@ void main() {
         {'start': 10, 'end': 15, 'displayStr': '#news'},
       ],
     ),
+    TestCase(
+      description: '5. Xoá vùng chọn đè lên nhiều mention (Multi-overlap)',
+      cacheText: "@abc @123",
+      cacheSelection: const TextSelection(baseOffset: 2, extentOffset: 7),
+      newText: "@a23",
+      newSelection: const TextSelection.collapsed(offset: 2),
+      initialMentions: [
+        LengthMap(start: 0, end: 4, displayStr: '@abc', originStr: '...'),
+        LengthMap(start: 5, end: 9, displayStr: '@123', originStr: '...'),
+      ],
+      expectedText: "@a23",
+      expectedOffset: 2,
+      expectedMentionCount: 0,
+    ),
   ]);
 
   runTests('Vòng đời Mention (CRUD)', [

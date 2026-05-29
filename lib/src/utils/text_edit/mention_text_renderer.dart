@@ -40,116 +40,76 @@ class MentionTextRenderer {
     }
 
     try {
-      // Thuật toán dựa trên việc xác định: Thay thế vùng (replaceStart, replaceEnd) bằng chuỗi mới (newStr)
-      int replaceStart;
-      int replaceEnd;
-      String newStr;
+      // Sử dụng TextDiff để xác định chính xác vùng thay đổi (Surgical replacement)
+      final diff = TextDiff.execute(
+        leftStr: cacheDisplayText,
+        rightStr: text,
+      );
+      
+      int replaceStart = diff.leftStr.start;
+      int replaceEnd = diff.leftStr.end;
+      String newStr = diff.rightStr.displayStr;
+
+      // Tối ưu hoá: "Trượt" vùng thay đổi về bên trái nếu các ký tự lặp lại (Ambiguous Insertion)
+      // Ví dụ: "@James" -> "@@James", diff trả về chèn '@' tại index 1, 
+      // ta trượt nó về index 0 để tránh làm hỏng mention bắt đầu từ index 0.
+      if (replaceStart == replaceEnd && newStr.isNotEmpty) {
+        while (replaceStart > 0 && cacheDisplayText[replaceStart - 1] == newStr[newStr.length - 1]) {
+          newStr = newStr[newStr.length - 1] + newStr.substring(0, newStr.length - 1);
+          replaceStart--;
+          replaceEnd--;
+        }
+      }
 
       final cacheLen = cacheDisplayText.length;
-      final textLen = text.length;
-
-      if (!cacheSelection.isCollapsed) {
-        // 1. Trường hợp có vùng chọn (Selection): Thay thế vùng chọn bằng văn bản mới (hoặc rỗng nếu xoá)
-        replaceStart = cacheSelection.start;
-        replaceEnd = cacheSelection.end;
-        newStr = text.substring(
-          replaceStart,
-          selection.end.clamp(replaceStart, textLen),
-        );
-      } else if (textLen > cacheLen) {
-        // 2. Trường hợp Thêm (Insertion) tại con trỏ
-        replaceStart = cacheSelection.start;
-        replaceEnd = cacheSelection.start;
-
-        // Xử lý bộ gõ tiếng Việt hoặc nhập liệu phức tạp (ví dụ: 'a' + 's' -> 'á')
-        final typedPortion = text.substring(
-          cacheSelection.start,
-          selection.end,
-        );
-        if (typedPortion.trim().isNotEmpty) {
-          // Tìm ranh giới từ để xác định chính xác phần nào trong từ đã thay đổi
-          final wordStart = _findWordStart(
-            cacheDisplayText,
-            cacheSelection.start,
-          );
-          final diff = TextDiff.execute(
-            leftStr: cacheDisplayText.substring(wordStart, cacheSelection.end),
-            rightStr: text.substring(wordStart, selection.end),
-          );
-          replaceStart = wordStart + diff.leftStr.start;
-          replaceEnd = wordStart + diff.leftStr.end;
-          newStr = diff.rightStr.displayStr;
-        } else {
-          newStr = typedPortion;
-        }
-      } else if (textLen < cacheLen) {
-        // 3. Trường hợp Xoá (Deletion) tại con trỏ
-        if (selection.start < cacheSelection.start) {
-          // Backspace (Xoá lùi)
-          replaceStart = selection.start;
-          replaceEnd = cacheSelection.start;
-          newStr = "";
-        } else {
-          // Forward Delete (Xoá tiến - phím Del)
-          replaceStart = cacheSelection.start;
-          replaceEnd = cacheSelection.start + (cacheLen - textLen);
-          newStr = "";
-        }
-      } else {
-        // 4. Trường hợp Thay thế (Replacement) cùng độ dài (ví dụ: thay đổi dấu mà không di chuyển con trỏ)
-        final diff = TextDiff.execute(
-          leftStr: cacheDisplayText,
-          rightStr: text,
-        );
-        replaceStart = diff.leftStr.start;
-        replaceEnd = diff.leftStr.end;
-        newStr = diff.rightStr.displayStr;
-      }
 
       // Đảm bảo chỉ số nằm trong phạm vi an toàn
       replaceStart = replaceStart.clamp(0, cacheLen);
       replaceEnd = replaceEnd.clamp(replaceStart, cacheLen);
 
-      // Cập nhật Mentions dựa trên phép thay thế
+      // Deep copy mentions để tránh side-effect
       final List<LengthMap> tempMentions = tfController.mentionedStrs
-          .map(
-            (m) => LengthMap(
-              start: m.start,
-              end: m.end,
-              displayStr: m.displayStr,
-              originStr: m.originStr,
-            ),
-          )
+          .map((m) => LengthMap(
+                start: m.start,
+                end: m.end,
+                displayStr: m.displayStr,
+                originStr: m.originStr,
+              ))
           .toList();
-      int difference = newStr.length - (replaceEnd - replaceStart);
 
+      // Xác định các mention bị ảnh hưởng bởi phép thay thế
+      final affectedMentions = tempMentions.where((m) {
+        return replaceStart < m.end && replaceEnd > m.start;
+      }).toList();
+
+      // Nếu là thao tác xoá (newStr rỗng) và nằm trong phạm vi của CHỈ MỘT mention
+      // thì kích hoạt Atomic Entity Deletion (xoá toàn bộ text của mention đó)
+      if (newStr.isEmpty && affectedMentions.length == 1) {
+        final mention = affectedMentions.first;
+        if (replaceStart > mention.start || (replaceStart == mention.start && replaceEnd > mention.start)) {
+          replaceStart = mention.start;
+          replaceEnd = mention.end;
+        }
+      }
+
+      int difference = newStr.length - (replaceEnd - replaceStart);
+      
+      // Cập nhật danh sách mention: Xoá những cái bị chạm vào, dịch chuyển những cái phía sau
       for (int i = 0; i < tempMentions.length; i++) {
         final mention = tempMentions[i];
 
-        // Phép thay thế nằm hoàn toàn sau mention -> Không ảnh hưởng
-        if (replaceStart >= mention.end) continue;
-
-        // Phép thay thế nằm hoàn toàn trước mention -> Dịch chuyển mention
-        if (replaceEnd <= mention.start) {
-          mention.start += difference;
-          mention.end += difference;
+        // Nếu mention nằm trong danh sách bị ảnh hưởng -> Xoá metadata
+        if (affectedMentions.contains(mention)) {
+          tempMentions.removeAt(i);
+          i--;
           continue;
         }
 
-        // Phép thay thế đè lên mention (Overlap)
-        // Bổ sung logic "Atomic Entity Deletion": Nếu xoá một phần mention, tự động xoá toàn bộ
-        if (newStr.isEmpty &&
-            (replaceStart > mention.start ||
-                (replaceStart == mention.start &&
-                    replaceEnd > mention.start))) {
-          final int mentionLen = mention.end - mention.start;
-          replaceStart = mention.start;
-          replaceEnd = mention.end;
-          difference = -mentionLen;
+        // Nếu phép thay thế nằm hoàn toàn trước mention -> Dịch chuyển mention
+        if (replaceEnd <= mention.start) {
+          mention.start += difference;
+          mention.end += difference;
         }
-
-        tempMentions.removeAt(i);
-        i--;
       }
 
       // Tạo văn bản kết quả
@@ -159,15 +119,15 @@ class MentionTextRenderer {
         newStr,
       );
 
-      // Nếu văn bản kết quả khớp với controller, tin tưởng selection của controller (IME)
-      final resultSelection = (resultText == text)
-          ? selection
-          : TextSelection.collapsed(offset: replaceStart + newStr.length);
-
       // Đồng bộ từ markup nếu phát hiện BBCode (thường do paste)
       if (BbCode.getMentionsBbobInText(resultText).isNotEmpty) {
         return _syncFromMarkup(resultText);
       }
+
+      // Nếu văn bản kết quả khớp với controller, tin tưởng selection của controller (IME)
+      final resultSelection = (resultText == text)
+          ? selection
+          : TextSelection.collapsed(offset: replaceStart + newStr.length);
 
       return MentionTextRendererResult(
         cacheDisplayText: resultText,
@@ -183,13 +143,6 @@ class MentionTextRenderer {
         mentionedStrs: tfController.mentionedStrs,
       );
     }
-  }
-
-  int _findWordStart(String text, int cursor) {
-    for (int i = cursor - 1; i >= 0; i--) {
-      if (text[i].trim().isEmpty) return i + 1;
-    }
-    return 0;
   }
 
   MentionTextRendererResult _syncFromMarkup(String markupText) {
