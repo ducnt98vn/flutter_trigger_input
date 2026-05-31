@@ -48,10 +48,22 @@ fi
 VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //')
 
 # 8. Git Workflow
-echo "Git: Đang thêm thay đổi và gắn tag $VERSION..."
+echo "Git: Đang kiểm tra thay đổi và gắn tag $VERSION..."
 git add .
-git commit -m "release: v$VERSION"
-git tag -a v$VERSION -m "Release: v$VERSION"
+
+# Chỉ commit nếu có thay đổi thực sự
+if ! git diff-index --quiet HEAD --; then
+    git commit -m "release: v$VERSION"
+else
+    echo "Thông báo: Không có thay đổi mới để commit, chuyển sang gắn tag."
+fi
+
+# Kiểm tra xem tag đã tồn tại chưa trước khi gắn
+if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+    echo "Cảnh báo: Tag v$VERSION đã tồn tại. Đang bỏ qua bước tạo tag."
+else
+    git tag -a v$VERSION -m "Release: v$VERSION"
+fi
 
 # 9. Push lên GitHub
 echo "📤 Đang đẩy code và tags lên GitHub..."
