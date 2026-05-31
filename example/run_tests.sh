@@ -13,6 +13,7 @@ fvm flutter test
 # Note: This requires a device/emulator to be running.
 echo ""
 echo "2. Running integration tests..."
+cd example
 fvm flutter test integration_test/app_test.dart
 
 echo ""

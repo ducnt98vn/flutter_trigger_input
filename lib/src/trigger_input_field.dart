@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'controllers/trigger_input_controller.dart';
 import 'core/constant.dart';
+import 'modal/length_map.dart';
+import 'modal/mention.dart';
 import 'modal/suggestion_info.dart';
 
 class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
@@ -41,10 +45,11 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
     this.scrollController,
     this.autofillHints,
     this.hideSuggestionList = false,
-
     required this.controller,
     required this.onMentionSearchChanged,
     this.allowSpace = false,
+    this.enableLinkReplacement = true,
+    this.linkReplacementText = 'See link',
   });
 
   final TriggerInputController controller;
@@ -52,6 +57,10 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
   final bool hideSuggestionList;
 
   final bool allowSpace;
+
+  final bool enableLinkReplacement;
+
+  final String linkReplacementText;
 
   final SuggestionExecuteCallback<T> onMentionSearchChanged;
 
@@ -160,9 +169,14 @@ class TriggerInputField<T extends SuggestionInfo> extends StatefulWidget {
 
 class TriggerInputFieldState<T extends SuggestionInfo>
     extends State<TriggerInputField<T>> {
+  final GlobalKey _textFieldKey = GlobalKey();
+
   @override
   void initState() {
     widget.controller.state.allowSpace = widget.allowSpace;
+    widget.controller.state.enableLinkReplacement =
+        widget.enableLinkReplacement;
+    widget.controller.state.linkReplacementText = widget.linkReplacementText;
 
     widget.controller.tfController.addListener(
       () => widget.controller.renderMentionListener(),
@@ -183,6 +197,13 @@ class TriggerInputFieldState<T extends SuggestionInfo>
     if (widget.allowSpace != oldWidget.allowSpace) {
       widget.controller.state.allowSpace = widget.allowSpace;
     }
+    if (widget.enableLinkReplacement != oldWidget.enableLinkReplacement) {
+      widget.controller.state.enableLinkReplacement =
+          widget.enableLinkReplacement;
+    }
+    if (widget.linkReplacementText != oldWidget.linkReplacementText) {
+      widget.controller.state.linkReplacementText = widget.linkReplacementText;
+    }
   }
 
   @override
@@ -201,7 +222,7 @@ class TriggerInputFieldState<T extends SuggestionInfo>
   void _tfTextInputListeners() {
     if (widget.controller.tfController.text.trim().isEmpty) {
       widget.controller.state.setSelectedMentionInfos([]);
-      widget.controller.tfController.mentionedStrs.clear();
+      // Logic xóa metadata hiện đã được tự động hóa trong DeltaProcessor
     }
   }
 
@@ -224,18 +245,66 @@ class TriggerInputFieldState<T extends SuggestionInfo>
       bool shouldShowSuggestions = !isOverlapping;
 
       if (shouldShowSuggestions) {
-        widget.controller.state.suggestionInfos.value = widget
-            .onMentionSearchChanged
-            .call(triggerSymbol, keyword);
+        widget.onMentionSearchChanged.call(triggerSymbol, keyword);
       }
     } else if (widget.controller.state.suggestionInfos.value.isNotEmpty) {
       widget.controller.state.suggestionInfos.value = [];
     }
   }
 
+  void _handleTapSelection() {
+    widget.onTap?.call();
+
+    // Sử dụng microtask để đợi framework cập nhật vị trí con trỏ sau khi tap
+    Future.microtask(() {
+      if (!mounted) return;
+
+      final controller = widget.controller.tfController;
+      final selection = controller.selection;
+
+      // Chỉ xử lý nếu là tap (không phải đang bôi đen thủ công)
+      if (!selection.isCollapsed) return;
+
+      final offset = selection.baseOffset;
+
+      if (offset >= 0) {
+        for (final mention in controller.mentionedStrs) {
+          // Nếu vị trí chạm nằm trong hoặc sát biên của một mention
+          if (offset >= mention.start && offset <= mention.end) {
+            controller.selection = TextSelection(
+              baseOffset: mention.start,
+              extentOffset: mention.end,
+            );
+
+            // Hiển thị Context Menu sau khi bôi đen
+            _showContextMenu();
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  void _showContextMenu() {
+    void findAndShowToolbar(Element element) {
+      if (element.widget is EditableText) {
+        final state = (element as StatefulElement).state as EditableTextState;
+        state.showToolbar();
+        return;
+      }
+      element.visitChildren(findAndShowToolbar);
+    }
+
+    final context = _textFieldKey.currentContext;
+    if (context != null) {
+      context.visitChildElements(findAndShowToolbar);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextField(
+      key: _textFieldKey,
       controller: widget.controller.tfController,
       maxLines: widget.maxLines,
       minLines: widget.minLines,
@@ -261,7 +330,7 @@ class TriggerInputFieldState<T extends SuggestionInfo>
       decoration: widget.decoration,
       expands: widget.expands,
       onEditingComplete: widget.onEditingComplete,
-      onTap: widget.onTap,
+      onTap: _handleTapSelection,
       onSubmitted: widget.onSubmitted,
       enabled: widget.enabled,
       enableInteractiveSelection: widget.enableInteractiveSelection,
@@ -269,6 +338,57 @@ class TriggerInputFieldState<T extends SuggestionInfo>
       scrollController: widget.scrollController,
       scrollPadding: widget.scrollPadding,
       scrollPhysics: widget.scrollPhysics,
+      contextMenuBuilder: (context, editableTextState) {
+        final controller = widget.controller.tfController;
+        final selection = controller.selection;
+
+        // Check if selection matches exactly one mention
+        LengthMap? targetMention;
+        for (final m in controller.mentionedStrs) {
+          if (m.start == selection.start && m.end == selection.end) {
+            targetMention = m;
+            break;
+          }
+        }
+
+        if (targetMention != null) {
+          final trigger = targetMention.trigger;
+          Mention? config;
+          for (final t in widget.controller.state.triggers.value) {
+            if (t.trigger == trigger) {
+              config = t;
+              break;
+            }
+          }
+
+          if (config != null) {
+            final label = config.contextMenuLabel ?? 'Copy Raw';
+            final markup = targetMention.originStr;
+
+            return AdaptiveTextSelectionToolbar.buttonItems(
+              anchors: editableTextState.contextMenuAnchors,
+              buttonItems: [
+                ...editableTextState.contextMenuButtonItems,
+                ContextMenuButtonItem(
+                  label: label,
+                  onPressed: () {
+                    if (config?.onContextMenuPressed != null) {
+                      config!.onContextMenuPressed!(markup);
+                    } else {
+                      Clipboard.setData(ClipboardData(text: markup));
+                    }
+                    editableTextState.hideToolbar();
+                  },
+                ),
+              ],
+            );
+          }
+        }
+
+        return AdaptiveTextSelectionToolbar.editableText(
+          editableTextState: editableTextState,
+        );
+      },
     );
   }
 }

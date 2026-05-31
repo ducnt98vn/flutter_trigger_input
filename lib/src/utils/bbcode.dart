@@ -18,8 +18,8 @@ class BbCode {
 
   static List<LengthMap> getMentionsBbobInText(String source) {
     List<LengthMap> results = [];
-    // Regex hỗ trợ cả tag [mention] và [link]
-    String regex = r'\[(mention|link)([^\]]*)\]([\s\S]*?)\[\/(mention|link)\]';
+    // Regex linh hoạt: nhận diện mọi cặp thẻ [tag]...[/tag]
+    String regex = r'\[([^\]\s=]+)([^\]]*)\]([\s\S]*?)\[\/\1\]';
 
     RegExp regExp = RegExp(regex, caseSensitive: false, multiLine: false);
 

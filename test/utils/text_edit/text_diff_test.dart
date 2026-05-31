@@ -56,7 +56,7 @@ void main() {
       leftStr: 'Xin chào',
       rightStr: 'Xin chào',
       expectedLeftDisplay: '',
-      expectedRightDisplay: 'Xin chào',
+      expectedRightDisplay: '',
     ),
     TextDiffTestCase(
       description: 'Chuỗi cũ rỗng',

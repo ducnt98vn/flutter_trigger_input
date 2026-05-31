@@ -14,4 +14,4 @@ class BbcodeTags {
 }
 
 typedef SuggestionExecuteCallback<T extends SuggestionInfo> =
-    List<T> Function(String trigger, String keyword);
+    void Function(String trigger, String keyword);

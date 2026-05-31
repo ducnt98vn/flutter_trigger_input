@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart' hide Text, Element;
 import 'package:flutter_trigger_input/flutter_trigger_input.dart';
-import 'package:flutter_trigger_input/src/modal/length_map.dart';
-import 'package:flutter_trigger_input/src/utils/bbcode.dart';
 import 'package:flutter_trigger_input/src/utils/suggestion/suggestion_listener.dart';
 import 'package:flutter_trigger_input/src/utils/text_edit/mention_text_renderer.dart';
 
@@ -51,48 +49,38 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
         ? selectedMention.displayStr[0]
         : '@';
 
-    final mentionConfig = state.triggers.value.firstWhere(
-      (element) => element.trigger == trigger,
-      orElse: () => Mention<T>(trigger: trigger),
-    );
-
     final mentionDisplay = '$trigger${value.suggestionName}';
     final suffix = state.appendSpaceOnAdd ? ' ' : '';
-    final fullReplaceStr = '$mentionDisplay$suffix';
 
-    final originStr = mentionConfig.markupBuilder != null
-        ? mentionConfig.markupBuilder!(trigger, value.id, value.name)
-        : BbCode.createMentionBbob(
-            trigger: trigger,
-            name: value.name,
-            id: value.id,
-          );
+    final mentionSegment = TextSegment(
+      text: mentionDisplay,
+      attributes: {
+        'mention': {'id': value.id, 'name': value.name, 'trigger': trigger},
+      },
+    );
 
-    // Synchronize cache to prevent jumpy UI during renderMentionListener
-    state.cacheDisplayText = currentText.replaceRange(
+    // Chuẩn bị danh sách segment để chèn (Mention + Dấu cách)
+    final List<TextSegment> insertSegments = [mentionSegment];
+    if (state.appendSpaceOnAdd) {
+      insertSegments.add(TextSegment(text: ' '));
+    }
+
+    // Cập nhật cache trước để Renderer không xử lý đè lên
+    final newFullText = currentText.replaceRange(
       replaceStart,
       replaceEnd,
-      fullReplaceStr,
+      mentionDisplay + suffix,
     );
+    state.cacheDisplayText = newFullText;
     state.cacheSelection = TextSelection.collapsed(
-      offset: replaceStart + fullReplaceStr.length,
+      offset: replaceStart + mentionDisplay.length + suffix.length,
     );
 
-    tfController.addMention(
-      cursorPos: tfController.selection.baseOffset,
-      cacheText: currentText,
-      cacheStr: LengthMap(
-        start: replaceStart,
-        end: replaceEnd,
-        displayStr: currentText.substring(replaceStart, replaceEnd),
-      ),
-      mentionStr: LengthMap(
-        start: replaceStart,
-        end: replaceStart + mentionDisplay.length,
-        displayStr: mentionDisplay,
-        originStr: originStr,
-      ),
-      appendSpaceOnAdd: state.appendSpaceOnAdd,
+    // Chèn nguyên tử (Atomic insertion)
+    tfController.replaceRangeWithSegments(
+      replaceStart,
+      replaceEnd,
+      insertSegments,
     );
 
     _syncSelectedMentionInfos(value);
@@ -100,52 +88,33 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
 
   /// Inserts an entity at the very beginning of the text field.
   void insertEntityAtStart({required T entity, String trigger = '@'}) {
-    final mentionConfig = state.triggers.value.firstWhere(
-      (element) => element.trigger == trigger,
-      orElse: () => Mention<T>(trigger: trigger),
-    );
-
     final mentionDisplay = '$trigger${entity.name}';
-    final originStr = mentionConfig.markupBuilder != null
-        ? mentionConfig.markupBuilder!(trigger, entity.id, entity.name)
-        : BbCode.createMentionBbob(
-            trigger: trigger,
-            id: entity.id,
-            name: entity.name,
-          );
-
-    // Prevent duplicate insertion of the same entity if it's already there
-    final exists = tfController.mentionedStrs.any(
-      (e) => e.originStr == originStr,
-    );
-    if (exists) return;
-
-    final currentText = tfController.text;
     final suffix = state.appendSpaceOnAdd ? ' ' : '';
-    final fullInsertStr = '$mentionDisplay$suffix';
 
-    state.cacheDisplayText = currentText.replaceRange(0, 0, fullInsertStr);
+    final mentionSegment = TextSegment(
+      text: mentionDisplay,
+      attributes: {
+        'mention': {'id': entity.id, 'name': entity.name, 'trigger': trigger},
+      },
+    );
+
+    final List<TextSegment> insertSegments = [mentionSegment];
+    if (state.appendSpaceOnAdd) {
+      insertSegments.add(TextSegment(text: ' '));
+    }
+
+    // Cập nhật cache trước
+    final newFullText = mentionDisplay + suffix + tfController.text;
+    state.cacheDisplayText = newFullText;
     state.cacheSelection = TextSelection.collapsed(
-      offset: fullInsertStr.length,
+      offset: mentionDisplay.length + suffix.length,
     );
 
-    tfController.addMention(
-      cursorPos: 0,
-      cacheText: currentText,
-      cacheStr: LengthMap(start: 0, end: 0, displayStr: ''),
-      mentionStr: LengthMap(
-        start: 0,
-        end: mentionDisplay.length,
-        displayStr: mentionDisplay,
-        originStr: originStr,
-      ),
-      appendSpaceOnAdd: state.appendSpaceOnAdd,
-    );
+    tfController.replaceRangeWithSegments(0, 0, insertSegments);
 
     _syncSelectedMentionInfos(entity);
   }
 
-  /// Synchronizes the list of selected mention objects.
   void _syncSelectedMentionInfos(T entity) {
     final currentList = state.selectedMentionInfos.value;
     if (!currentList.any((e) => e.id == entity.id)) {
@@ -157,7 +126,7 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
     final triggerSymbols = state.triggers.value.map((e) => e.trigger).toList();
     final result = suggestionListenerC.execute(
       tfController: tfController,
-      triggerSymbols: triggerSymbols.isEmpty ? ['@'] : triggerSymbols,
+      triggerSymbols: triggerSymbols.isEmpty ? ['@', '#'] : triggerSymbols,
       allowSpace: state.allowSpace,
     );
     state.setSelectedMentionLengths(result);
@@ -168,15 +137,20 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
       cacheDisplayText: state.cacheDisplayText,
       tfController: tfController,
       cacheSelection: state.cacheSelection,
+      enableLinkReplacement: state.enableLinkReplacement,
+      linkReplacementText: state.linkReplacementText,
     );
+
+    // Cập nhật segments trước khi cập nhật value của Controller
+    if (result.segments != null) {
+      tfController.segmentsInternal = result.segments!;
+    }
 
     state.cacheSelection = result.selection;
     state.cacheDisplayText = result.cacheDisplayText;
-    tfController.mentionedStrs = result.mentionedStrs;
 
     final newText = result.text ?? tfController.text;
 
-    // Only update if there's an actual change to avoid unnecessary rebuilds
     if (tfController.text != newText ||
         tfController.selection != result.selection) {
       tfController.value = TextEditingValue(

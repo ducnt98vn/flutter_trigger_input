@@ -6,7 +6,8 @@ class Mention<T extends SuggestionInfo> {
     required this.trigger,
     this.data = const [],
     this.style,
-    this.markupBuilder,
+    this.contextMenuLabel,
+    this.onContextMenuPressed,
   });
 
   final String trigger;
@@ -15,6 +16,10 @@ class Mention<T extends SuggestionInfo> {
 
   TextStyle? style;
 
-  final String Function(String trigger, String mention, String value)?
-  markupBuilder;
+  /// Custom label for the context menu button when this mention is selected.
+  final String? contextMenuLabel;
+
+  /// Custom action for the context menu button.
+  /// If null, it defaults to copying the JSON markup of the segment to the clipboard.
+  final void Function(String markup)? onContextMenuPressed;
 }

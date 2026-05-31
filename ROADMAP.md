@@ -2,19 +2,21 @@
 
 ## ✅ Completed
 
-- **Multi-Trigger Support**: Support multiple triggers simultaneously (e.g., @mentions, #hashtags, [links]).
-- **Keyword Spaces**: Added `allowSpace` option to support trigger keywords with spaces (e.g., @Full Name).
-- **Atomic Entity Deletion**: Mechanism to delete the entire mention/entity block when any part of it is modified.
-- **Enhanced Core Engine**: Optimized `MentionTextRenderer` for improved efficiency and accurate state synchronization.
+- **Delta Architecture**: Switched to a modern segment-based state management (JSON-friendly) for high performance and easy data sync.
+- **Multi-Trigger Support**: Handle `@mentions`, `#hashtags`, `[links]`, and more simultaneously.
+- **Keyword Spaces**: Added `allowSpace` option to support trigger keywords with spaces (e.g., @John Doe).
+- **Atomic Interaction**: Enhanced tap behavior to automatically select entire entities and trigger context menus.
+- **Atomic Entity Deletion**: Mechanism to delete entire mention/entity blocks as single units.
+- **Link Replacement**: Automatically converts pasted URLs into interactable text with customizable labels and on/off toggle.
+- **Custom Context Menus**: Support for user-defined actions and labels for interactable entities.
+- **Data-Driven Testing**: Comprehensive test suite with 40+ cases covering CRUD, IME, and boundary logic.
+- **Integration Tests**: End-to-end tests ensuring core features work in real-world scenarios.
 - **IME & Vietnamese Support**: Refined handling for complex input methods and diacritics.
-- **User-defined Filtering**: Customizable algorithm for suggestion filtering and scoring.
-- **Data-Driven Testing**: Comprehensive test suite covering edge cases, CRUD operations, and boundary logic.
-- **Custom Markup**: Support for custom BBCode through `markupBuilder`.
 
 ## 🚀 Upcoming
 
-- [ ] **Copy Raw Mention**: Provide additional options in the context menu to copy the raw markup/BBCode of a mention.
-- [ ] **Advanced BBCode Customization**: More flexible tag parsing beyond standard [mention] and [link].
-- [ ] **Integration Tests**: Basic integration tests for real-world usage scenarios.
-- [ ] **Extended Language Support**: Further improvements for RTL languages and complex character sets.
-- [ ] **Context Menu Customization**: Allow users to define custom actions for mentioned entities.
+- [ ] **Extended Language Support**: Further improvements for RTL languages and complex multi-byte character sets.
+- [ ] **Rich Text Formatting**: Extend the Delta architecture to support basic formatting like **bold**, *italic*, and ~~strikethrough~~.
+- [ ] **Built-in Suggestion Overlay**: Offer an optional, highly customizable built-in overlay for developers who want a "plug-and-play" experience.
+- [ ] **Performance Benchmarking**: Stress testing and optimization for very large documents with thousands of interactive segments.
+- [ ] **Documentation Site**: Create a dedicated documentation site with interactive examples and integration guides.

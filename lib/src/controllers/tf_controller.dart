@@ -1,123 +1,155 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_trigger_input/src/modal/text_segment.dart';
 import 'package:flutter_trigger_input/src/modal/mention.dart';
 import 'package:flutter_trigger_input/src/modal/length_map.dart';
-import 'package:flutter_trigger_input/extensions/list_ext.dart';
 
 class TFController extends TextEditingController {
-  TextStyle baseEntityTextStyle = const TextStyle(
-    color: Colors.white,
-    fontWeight: FontWeight.bold,
-    backgroundColor: Colors.pinkAccent,
-  );
+  List<TextSegment> _segments = [TextSegment(text: '')];
   Map<String, Mention> _triggerConfigs = {};
 
-  List<LengthMap> mentionedStrs = [];
+  List<TextSegment> get segments => _segments;
+
+  /// Cập nhật segments mà không gây ra notifyListeners()
+  set segmentsInternal(List<TextSegment> newSegments) {
+    _segments = newSegments;
+  }
 
   set triggerConfigs(List<Mention> configs) {
     _triggerConfigs = {for (var c in configs) c.trigger: c};
   }
 
-  TFController();
+  List<LengthMap> get mentionedStrs {
+    final List<LengthMap> results = [];
+    int currentOffset = 0;
+    for (var segment in _segments) {
+      if (!segment.isPlain) {
+        final Map<String, dynamic>? mentionAttr =
+            segment.attributes?['mention'] as Map<String, dynamic>?;
+        final String trigger =
+            (mentionAttr?['trigger'] as String?) ??
+            (segment.text.isNotEmpty ? segment.text[0] : '@');
+        final String id = (mentionAttr?['id'] as String?) ?? '';
+        final String name =
+            (mentionAttr?['name'] as String?) ??
+            segment.text.replaceFirst(trigger, '');
 
-  /// Can be used to get the markup from the controller directly.
-  String get markupText {
-    try {
-      StringBuffer someVal = StringBuffer('');
-      if (mentionedStrs.isEmpty) {
-        someVal.write(text);
-      } else {
-        int tempSelection = 0;
-
-        for (var mention in mentionedStrs) {
-          someVal.write(text.substring(tempSelection, mention.start));
-          someVal.write(mention.originStr);
-
-          tempSelection = mention.end;
-        }
-
-        someVal.write(text.substring(tempSelection, text.length));
+        results.add(
+          LengthMap(
+            start: currentOffset,
+            end: currentOffset + segment.text.length,
+            displayStr: segment.text,
+            originStr:
+                '[mention trigger="$trigger" id="$id" name="$name"][/mention]',
+          ),
+        );
       }
-
-      return someVal.toString();
-    } catch (e) {
-      return text;
+      currentOffset += segment.text.length;
     }
+    return results;
   }
 
-  void addMention({
-    required int cursorPos,
-    required String cacheText,
-    required LengthMap cacheStr,
-    required LengthMap mentionStr,
-    void Function()? beforeUpdateValue,
-    bool appendSpaceOnAdd = true,
-  }) {
-    try {
-      String resultText = cacheText;
-      List<LengthMap> tempMentions = mentionedStrs;
-      int difference =
-          mentionStr.displayStr.length +
-          (appendSpaceOnAdd ? 1 : 0) -
-          cacheStr.displayStr.length;
+  void replaceRange(int start, int end, String newText) {
+    _applyReplacement(start, end, [TextSegment(text: newText)]);
+  }
 
-      if (tempMentions.isEmpty || cursorPos >= tempMentions.last.end) {
-        tempMentions.add(mentionStr);
-      } else {
-        /// 3 TH:
-        /// nằm trước mention
-        /// nằm sau mention
-        /// nằm giữa mention
-        for (int index = 0; index < tempMentions.length; index++) {
-          final currentMention = tempMentions[index];
-          final previousMention = tempMentions.tryGet(index - 1);
+  void replaceRangeWithSegment(int start, int end, TextSegment newSegment) {
+    _applyReplacement(start, end, [newSegment]);
+  }
 
-          if (cursorPos <= currentMention.start) {
-            if (previousMention != null) {
-              tempMentions[index]
-                ..start = tempMentions[index].start + difference
-                ..end = tempMentions[index].end + difference;
+  void replaceRangeWithSegments(
+    int start,
+    int end,
+    List<TextSegment> newSegmentsList,
+  ) {
+    _applyReplacement(start, end, newSegmentsList);
+  }
 
-              if (cursorPos > previousMention.end) {
-                tempMentions.insert(index, mentionStr);
-                index++;
-              }
-            } else {
-              tempMentions[index]
-                ..start = tempMentions[index].start + difference
-                ..end = tempMentions[index].end + difference;
+  void _applyReplacement(
+    int start,
+    int end,
+    List<TextSegment> newSegmentsList,
+  ) {
+    final List<TextSegment> nextSegments = [];
+    int currentOffset = 0;
+    bool replaced = false;
 
-              tempMentions.insert(index, mentionStr);
-              index++;
-            }
-          }
+    for (var segment in _segments) {
+      final int segmentStart = currentOffset;
+      final int segmentEnd = currentOffset + segment.text.length;
+      currentOffset = segmentEnd;
+
+      if (replaced || start > segmentEnd || end < segmentStart) {
+        nextSegments.add(segment);
+      } else if (start >= segmentStart && end <= segmentEnd) {
+        if (start > segmentStart) {
+          nextSegments.add(
+            TextSegment(
+              text: segment.text.substring(0, start - segmentStart),
+              attributes: segment.attributes,
+            ),
+          );
         }
+
+        nextSegments.addAll(newSegmentsList);
+        replaced = true;
+
+        if (end < segmentEnd) {
+          nextSegments.add(
+            TextSegment(
+              text: segment.text.substring(end - segmentStart),
+              attributes: segment.attributes,
+            ),
+          );
+        }
+      } else {
+        nextSegments.add(segment);
       }
-
-      resultText = resultText.replaceRange(
-        cacheStr.start,
-        cacheStr.end,
-        mentionStr.displayStr + (appendSpaceOnAdd ? ' ' : ''),
-      );
-
-      mentionedStrs = tempMentions;
-
-      value = TextEditingValue(
-        text: resultText,
-        selection: TextSelection.collapsed(
-          offset: mentionStr.end + (appendSpaceOnAdd ? 1 : 0),
-        ),
-      );
-      /**
-       * Rebuild để xử lý trường hợp văn bản không thay đổi
-       * nhưng có cập nhật danh sách mentionedStrs.
-       */
-      if (resultText == cacheText) notifyListeners();
-    } catch (e) {
-      value = TextEditingValue(
-        text: text,
-        selection: TextSelection.collapsed(offset: cursorPos),
-      );
     }
+
+    if (!replaced) {
+      nextSegments.addAll(newSegmentsList);
+    }
+
+    _segments = _optimizeSegments(nextSegments);
+
+    final fullText = _segments.map((e) => e.text).join('');
+    final totalAddedLength = newSegmentsList.fold(
+      0,
+      (sum, s) => sum + s.text.length,
+    );
+    final newOffset = (start + totalAddedLength).clamp(0, fullText.length);
+
+    value = TextEditingValue(
+      text: fullText,
+      selection: TextSelection.collapsed(offset: newOffset),
+    );
+  }
+
+  List<TextSegment> _optimizeSegments(List<TextSegment> segments) {
+    if (segments.isEmpty) return [TextSegment(text: '')];
+    final List<TextSegment> result = [];
+    for (var s in segments) {
+      if (result.isNotEmpty && result.last.isPlain && s.isPlain) {
+        result.last.text += s.text;
+      } else if (s.text.isNotEmpty || !s.isPlain) {
+        // Chỉ thêm segment nếu nó có nội dung hoặc có thuộc tính (metadata)
+        result.add(s);
+      }
+    }
+    // Đảm bảo luôn có ít nhất 1 segment rỗng để tránh lỗi TextField
+    return result.isEmpty ? [TextSegment(text: '')] : result;
+  }
+
+  /// Trả về chuỗi JSON đại diện cho nội dung (Kiến trúc Delta)
+  String get markupText {
+    // Lọc bỏ các phân đoạn rỗng hoàn toàn trước khi xuất dữ liệu
+    final validSegments = _segments
+        .where((s) => s.text.isNotEmpty || !s.isPlain)
+        .toList();
+
+    if (validSegments.isEmpty) return '[]';
+
+    return validSegments.map((s) => s.toJson()).toList().toString();
   }
 
   @override
@@ -126,45 +158,73 @@ class TFController extends TextEditingController {
     TextStyle? style,
     bool? withComposing,
   }) {
-    if (mentionedStrs.isEmpty) return TextSpan(style: style, text: text);
+    final children = <InlineSpan>[];
+    int currentOffset = 0;
 
-    String markupResult = text;
+    for (final segment in _segments) {
+      final int segmentStart = currentOffset;
+      final int segmentEnd = currentOffset + segment.text.length;
+      currentOffset = segmentEnd;
 
-    try {
-      var children = <InlineSpan>[];
+      TextStyle? segmentStyle = style;
 
-      int tempSelection = 0;
-
-      for (LengthMap entity in mentionedStrs) {
-        children.add(
-          TextSpan(
-            text: markupResult.substring(tempSelection, entity.start),
-            style: style,
-          ),
+      if (segment.isMention || segment.isHashtag) {
+        final trigger = segment.text.isNotEmpty ? segment.text[0] : '';
+        segmentStyle =
+            _triggerConfigs[trigger]?.style ??
+            style?.copyWith(color: Colors.blue, fontWeight: FontWeight.bold);
+      } else if (segment.isLink) {
+        segmentStyle = style?.copyWith(
+          color: Colors.blue,
+          decoration: TextDecoration.underline,
         );
-
-        children.add(
-          TextSpan(
-            text: markupResult.substring(entity.start, entity.end),
-            style: _triggerConfigs.containsKey(entity.trigger)
-                ? _triggerConfigs[entity.trigger]?.style
-                : style?.merge(baseEntityTextStyle),
-          ),
-        );
-
-        tempSelection = entity.end;
       }
 
-      children.add(
-        TextSpan(
-          text: markupResult.substring(tempSelection, markupResult.length),
-          style: style,
-        ),
-      );
+      final bool isOverlapping =
+          selection.isValid &&
+          !selection.isCollapsed &&
+          segmentStart < selection.end &&
+          segmentEnd > selection.start;
 
-      return TextSpan(style: style, children: children);
-    } catch (e) {
-      return TextSpan(style: style, text: text);
+      if (isOverlapping && (segment.isMention || segment.isHashtag)) {
+        final int relSelStart = (selection.start - segmentStart).clamp(
+          0,
+          segment.text.length,
+        );
+        final int relSelEnd = (selection.end - segmentStart).clamp(
+          0,
+          segment.text.length,
+        );
+
+        if (relSelStart > 0) {
+          children.add(
+            TextSpan(
+              text: segment.text.substring(0, relSelStart),
+              style: segmentStyle,
+            ),
+          );
+        }
+
+        children.add(
+          TextSpan(
+            text: segment.text.substring(relSelStart, relSelEnd),
+            style: segmentStyle?.copyWith(backgroundColor: Colors.transparent),
+          ),
+        );
+
+        if (relSelEnd < segment.text.length) {
+          children.add(
+            TextSpan(
+              text: segment.text.substring(relSelEnd),
+              style: segmentStyle,
+            ),
+          );
+        }
+      } else {
+        children.add(TextSpan(text: segment.text, style: segmentStyle));
+      }
     }
+
+    return TextSpan(style: style, children: children);
   }
 }

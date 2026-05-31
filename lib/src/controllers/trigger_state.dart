@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart' show TextSelection, TextAffinity;
 import 'package:flutter_trigger_input/flutter_trigger_input.dart';
-import 'package:flutter_trigger_input/src/modal/length_map.dart';
 import 'package:flutter_trigger_input/src/utils/safe_value_notifier.dart';
 
 class TriggerState<T extends SuggestionInfo> {
@@ -36,6 +35,12 @@ class TriggerState<T extends SuggestionInfo> {
 
   /// Whether to allow spaces in the keyword after a trigger.
   bool allowSpace = false;
+
+  /// Whether to enable automatic link replacement when pasting.
+  bool enableLinkReplacement = true;
+
+  /// Text to display instead of the raw URL when link replacement is enabled.
+  String linkReplacementText = 'See link';
 
   /// Stores the previous selection to detect cursor movement or state changes.
   TextSelection cacheSelection = const TextSelection(

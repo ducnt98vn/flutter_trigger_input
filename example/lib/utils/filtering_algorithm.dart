@@ -39,9 +39,10 @@ class FilteringAlgorithm {
     String rawKeyword,
     String normalizedKeyword,
   ) {
-    return canMentions.isEmpty ||
-        (rawKeyword.isNotEmpty &&
-            (normalizedKeyword.isEmpty || rawKeyword.contains('\n')));
+    // Nếu rawKeyword chỉ chứa khoảng trắng và chúng ta cho phép space,
+    // thì vẫn nên hiển thị danh sách đầy đủ (normalizedKeyword rỗng).
+    // Chỉ thực sự trả về rỗng nếu có ký tự xuống dòng.
+    return canMentions.isEmpty || rawKeyword.contains('\n');
   }
 
   List<SuggestionInfo> _filterSuggestions(

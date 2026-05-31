@@ -1,60 +1,56 @@
 import 'package:flutter_trigger_input/flutter_trigger_input.dart';
-import 'package:flutter_trigger_input/src/modal/length_map.dart';
 
 class SuggestionListener {
   LengthMap? execute({
     required TFController tfController,
-    List<String> triggerSymbols = const ['@'],
+    List<String> triggerSymbols = const ['@', '#'],
     bool allowSpace = false,
   }) {
-    final cursorPos = tfController.selection.baseOffset;
-    final currentText = tfController.value.text;
+    final text = tfController.text;
+    final selection = tfController.selection;
+    if (!selection.isCollapsed) return null;
 
-    if (currentText.isEmpty ||
-        !tfController.selection.isCollapsed ||
-        cursorPos == 0) {
-      return null;
-    }
+    final cursorIndex = selection.baseOffset.clamp(0, text.length);
+    final textUntilCursor = text.substring(0, cursorIndex);
 
-    int? triggerPos;
+    // Tạo pattern cho các trigger symbols
+    // Cần cẩn thận khi dùng trong [] (character class)
+    final String triggerCharsForClass = triggerSymbols
+        .map((s) {
+          if (s == ']' || s == '\\' || s == '^' || s == '-') {
+            return '\\$s';
+          }
+          return s;
+        })
+        .join('');
 
-    // Optimization: Use string indexing instead of runes.elementAt for O(N) performance
-    for (var i = cursorPos - 1; i >= 0; i--) {
-      final char = currentText[i];
-      if (triggerSymbols.contains(char)) {
-        triggerPos = i;
-        break;
-      }
-      // Stop if we hit a space and allowSpace is false
-      if (!allowSpace && char.trim().isEmpty) {
-        break;
-      }
+    final triggersPattern = triggerSymbols.map(RegExp.escape).join('|');
 
-      // Always stop at newline
-      if (char == '\n') {
-        break;
-      }
-    }
+    // Logic cho phần keyword:
+    // Nếu allowSpace = true: Lấy mọi thứ trừ các trigger hoặc xuống dòng.
+    // Nếu allowSpace = false: Chỉ lấy các ký tự word, dots, underscores.
+    final keywordPattern = allowSpace
+        ? '[^$triggerCharsForClass\\n]*'
+        : r'[\w._]*';
 
-    if (triggerPos == null) {
-      return null;
-    }
+    // Pattern hoàn chỉnh: (khoảng trắng hoặc đầu dòng) (trigger) (keyword)
+    final regex = RegExp('(\\s|^)($triggersPattern)($keywordPattern)\$');
+    final match = regex.firstMatch(textUntilCursor);
 
-    // Check if the trigger position is inside an existing mention
-    bool isInsideExistingMention(int index) {
-      return tfController.mentionedStrs.any(
-        (m) => index >= m.start && index < m.end,
+    if (match != null) {
+      final prefix = match.group(1) ?? '';
+      final trigger = match.group(2) ?? '';
+      final keyword = match.group(3) ?? '';
+
+      final start = match.start + prefix.length;
+
+      return LengthMap(
+        start: start,
+        end: cursorIndex,
+        displayStr: '$trigger$keyword',
       );
     }
 
-    if (isInsideExistingMention(triggerPos)) {
-      return null;
-    }
-
-    return LengthMap(
-      start: triggerPos,
-      end: cursorPos,
-      displayStr: currentText.substring(triggerPos, cursorPos),
-    );
+    return null;
   }
 }

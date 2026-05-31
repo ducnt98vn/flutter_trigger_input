@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:faker/faker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_trigger_input/flutter_trigger_input.dart';
 import 'package:flutter_trigger_input_example/pages/trigger_input/widgets/keyword_panel.dart';
 import 'package:flutter_trigger_input_example/utils/filtering_algorithm.dart';
@@ -14,9 +17,11 @@ class TriggerInputPage extends StatefulWidget {
 class _TriggerInputPageState extends State<TriggerInputPage> {
   final ValueNotifier<String> fullText = ValueNotifier('');
   final ValueNotifier<String> triggeredKey = ValueNotifier('');
+  final ValueNotifier<bool> enableLinkReplacement = ValueNotifier(true);
 
   late final TriggerInputController<SuggestionInfo> _controller;
   final ScrollController _suggestionScrollController = ScrollController();
+  Timer? _debounceTimer;
 
   final userSuggestions = List.generate(
     20,
@@ -53,18 +58,12 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
             color: Colors.pink,
             backgroundColor: Colors.amberAccent,
           ),
-          markupBuilder: (trigger, id, name) =>
-              '[hashtag id="$id"]#$name[/hashtag]',
+          contextMenuLabel: 'Copy Hashtag Data',
+          onContextMenuPressed: (markup) {
+            debugPrint('Custom action for hashtag: $markup');
+            Clipboard.setData(ClipboardData(text: markup));
+          },
         ),
-        // &#128279; 🔗
-        // Mention(
-        //   trigger: '[',
-        //   style: const TextStyle(
-        //     color: Colors.green,
-        //     decoration: TextDecoration.underline,
-        //   ),
-        //   markupBuilder: (trigger, id, name) => '[link url="$id"]$name[/link]',
-        // ),
       ],
     );
 
@@ -77,6 +76,7 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _suggestionScrollController.dispose();
     _controller.dispose();
     super.dispose();
@@ -97,25 +97,32 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
     );
   }
 
-  List<SuggestionInfo> onMentionSearchChanged(String trigger, String keyword) {
+  void onMentionSearchChanged(String trigger, String keyword) {
     triggeredKey.value = '$trigger$keyword';
 
-    List<SuggestionInfo> source = [];
-    if (trigger == '@') {
-      source = userSuggestions;
-    } else if (trigger == '#') {
-      source = hashtagSuggestions;
-    } else {
-      source = [
-        SuggestionInfo(id: 'https://flutter.dev', name: 'Flutter Website')
-      ];
-    }
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
 
-    return FilteringAlgorithm().execute(
-      trigger,
-      keyword,
-      source,
-    );
+      List<SuggestionInfo> source = [];
+      if (trigger == '@') {
+        source = userSuggestions;
+      } else if (trigger == '#') {
+        source = hashtagSuggestions;
+      } else {
+        source = [
+          SuggestionInfo(id: 'https://flutter.dev', name: 'Flutter Website')
+        ];
+      }
+
+      final results = FilteringAlgorithm().execute(
+        trigger,
+        keyword,
+        source,
+      );
+
+      _controller.state.suggestionInfos.value = results;
+    });
   }
 
   @override
@@ -137,6 +144,7 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
                     children: [
                       _buildFullTextPanel(),
                       _buildKeywordPanel(),
+                      _buildSettingsPanel(),
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Wrap(
@@ -156,6 +164,68 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
                               },
                               child: const Text('Add #Hashtag'),
                             ),
+                            ElevatedButton(
+                              onPressed: () {
+                                final currentText =
+                                    _controller.tfController.text;
+                                final selection =
+                                    _controller.tfController.selection;
+                                final start = selection.baseOffset
+                                    .clamp(0, currentText.length);
+                                final end = selection.extentOffset
+                                    .clamp(0, currentText.length);
+
+                                final linkSegment = TextSegment(
+                                  text: 'Google',
+                                  attributes: {
+                                    'link': {'url': 'https://google.com'}
+                                  },
+                                );
+
+                                // Cập nhật cache trước để Renderer không xử lý đè lên gây lặp chữ
+                                final newFullText = currentText.replaceRange(
+                                    start, end, 'Google');
+                                _controller.state.cacheDisplayText =
+                                    newFullText;
+                                _controller.state.cacheSelection =
+                                    TextSelection.collapsed(
+                                  offset: start + 'Google'.length,
+                                );
+
+                                _controller.tfController
+                                    .replaceRangeWithSegment(
+                                  start,
+                                  end,
+                                  linkSegment,
+                                );
+                              },
+                              child: const Text('Add Link'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                const url = 'https://flutter.dev';
+                                final currentText =
+                                    _controller.tfController.text;
+                                final selection =
+                                    _controller.tfController.selection;
+                                final newText = currentText.replaceRange(
+                                  selection.baseOffset
+                                      .clamp(0, currentText.length),
+                                  selection.extentOffset
+                                      .clamp(0, currentText.length),
+                                  url,
+                                );
+
+                                _controller.tfController.value =
+                                    TextEditingValue(
+                                  text: newText,
+                                  selection: TextSelection.collapsed(
+                                    offset: selection.baseOffset + url.length,
+                                  ),
+                                );
+                              },
+                              child: const Text('Paste URL'),
+                            ),
                           ],
                         ),
                       ),
@@ -169,18 +239,25 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
               ],
             ),
           ),
-          TriggerInputField<SuggestionInfo>(
-            controller: _controller,
-            allowSpace: true,
-            decoration: const InputDecoration(
-              hintText: 'Type @ for users, # for hashtags, [ for links...',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.all(12),
-            ),
-            keyboardType: TextInputType.multiline,
-            minLines: 1,
-            maxLines: 4,
-            onMentionSearchChanged: onMentionSearchChanged,
+          ValueListenableBuilder(
+            valueListenable: enableLinkReplacement,
+            builder: (context, enabled, child) {
+              return TriggerInputField<SuggestionInfo>(
+                controller: _controller,
+                allowSpace: true,
+                enableLinkReplacement: enabled,
+                linkReplacementText: 'See link',
+                decoration: const InputDecoration(
+                  hintText: 'Type @ for users, # for hashtags, [ for links...',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(12),
+                ),
+                keyboardType: TextInputType.multiline,
+                minLines: 1,
+                maxLines: 4,
+                onMentionSearchChanged: onMentionSearchChanged,
+              );
+            },
           ),
           SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
@@ -276,6 +353,26 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
       builder: (_, value, __) {
         return KeywordPanel(keyword: value);
       },
+    );
+  }
+
+  Widget _buildSettingsPanel() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Row(
+        children: [
+          const Text('Enable Link Replacement:'),
+          ValueListenableBuilder(
+            valueListenable: enableLinkReplacement,
+            builder: (_, value, __) {
+              return Switch(
+                value: value,
+                onChanged: (newValue) => enableLinkReplacement.value = newValue,
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

@@ -6,57 +6,69 @@
        width="240"/>
 </div>
 
-A highly customizable Flutter widget for detecting and handling interactive triggers like mentions, hashtags, and links within a text field. It offers a seamless way to manage suggestion overlays with full generic type support and built-in markup parsing.
+A highly customizable Flutter widget for detecting and handling interactive triggers like mentions, hashtags, and links within a text field.
 
-## Getting Started
+## 🧠 The Core Algorithm: Delta Architecture
 
-To get a clear understanding of how this package works in a real-world scenario, we highly recommend checking out the included example.
+This package has undergone a major core engine upgrade, moving away from traditional **string-based manual offset calculations** and Regex-based sync logic to a modern **Delta Architecture**.
 
-> **Note**: Run the example project to see the full implementation in action.
+### Why Delta?
+- **Segment-based Management**: Instead of one long string, content is managed as a list of structured segments (Plain Text, Mentions, Links).
+- **High Performance**: Only affected segments are updated during edits, avoiding expensive recalculations of the entire text field.
+- **Data Integrity**: Special entities (like mentions) are treated as atomic units, preventing accidental partial modifications.
+- **Backend Friendly**: Content is exported as a structured JSON array (Quill-like Delta format), making it easy to store and render across different platforms.
 
-## 🚀 Usage
+## 🚀 Key Features
 
-Follow these steps to integrate Flutter Trigger Input into your project:
+- **Multi-Trigger Support**: Handle `@mentions`, `#hashtags`, `[links]`, and more simultaneously.
+- **Delta Architecture**: Manages content as structured segments (JSON), perfect for backend storage.
+- **Keyword Spaces**: Support for triggers with spaces (e.g., `@John Doe`) via `allowSpace: true`.
+- **Atomic Deletion**: Entities are deleted as single units.
+- **Auto Link Replacement**: Automatically converts pasted URLs into interactable text.
+- **Custom Context Menus**: Define custom actions for each trigger type.
 
-**1. Initialize the Controller**
+## 🛠 Usage
 
-Create an instance of TriggerInputController. This controller manages the detection logic and the state of your input field.
+### 1. Initialize the Controller
+Define your triggers and their respective styles.
 
 ```dart
-final TriggerInputController _controller = TriggerInputController();
+final _controller = TriggerInputController<SuggestionInfo>(
+  triggers: [
+    Mention(
+      trigger: '@',
+      style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+    ),
+    Mention(
+      trigger: '#',
+      style: const TextStyle(color: Colors.pink),
+    ),
+  ],
+);
 ```
 
-**2. Add the TriggerInputField Widget**
-
-Place the TriggerInputField in your widget tree. Pass the \_controller and your initial list of suggestions (initSuggestList). This widget automatically detects trigger characters (like @) as the user types.
-
+### 2. Add the Widget
 ```dart
-TriggerInputField(
+TriggerInputField<SuggestionInfo>(
   controller: _controller,
-  initSuggestList: suggestions, // Your list of SuggestionInfo objects
-  onMentionSearchChanged: onMentionSearchChanged,
-),
-```
-
-**3. Listen for Suggestions**
-
-To display a custom suggestion UI (like a ListView above the keyboard), listen to the suggestionInfos notifier. It updates in real-time based on the user's search keyword.
-
-```dart
-ValueListenableBuilder<List<SuggestionInfo>>(
-  valueListenable: _controller.suggestionInfos,
-  builder: (context, suggestions, child) {
-    if (suggestions.isEmpty) return const SizedBox.shrink();
-
-    return MySuggestionList(items: suggestions);
+  allowSpace: true,
+  onMentionSearchChanged: (trigger, keyword) {
+    // Fetch and update suggestions in your state
+    final results = mySearchLogic(trigger, keyword);
+    _controller.state.suggestionInfos.value = results;
   },
 )
 ```
 
-## Credits 👨‍💻
+### 3. Get Structured Data
+Access the content in a structured JSON format (Delta) for your API.
+```dart
+String jsonMarkup = _controller.tfController.markupText;
+// Output: [{"insert": "Hi "}, {"insert": "@John", "attributes": {"mention": {"id": "1"}}}]
+```
 
+## 📝 Credits
 - [bbob_dart](https://pub.dev/packages/bbob_dart)
 
-## Issues and feedback 💭
-
-If you have any suggestion for including a feature or if something doesn't work, feel free to open a Github issue for us to have a discussion on it.
+## 🤝 Issues and feedback
+Feel free to open a Github issue for suggestions or bug reports.
