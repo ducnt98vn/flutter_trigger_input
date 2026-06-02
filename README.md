@@ -8,17 +8,15 @@
 
 A highly customizable Flutter widget for detecting and handling interactive triggers like mentions, hashtags, and links within a text field.
 
-## 🧠 The Core Algorithm: Delta Architecture
+## 🧠 Why Choose Delta Architecture?
 
-This package has undergone a major core engine upgrade, moving away from traditional **string-based manual offset calculations** and Regex-based sync logic to a modern **Delta Architecture**.
+Most Flutter mentions packages use simple string offset calculations, which often break during complex edits or IME (Input Method Editor) changes. **flutter_trigger_input** uses a modern **Delta Architecture** (Segment-based state management):
 
-### Why Delta?
-- **Segment-based Management**: Instead of one long string, content is managed as a list of structured segments (Plain Text, Mentions, Links).
 - **High Performance**: Only affected segments are updated during edits, avoiding expensive recalculations of the entire text field.
 - **Data Integrity**: Special entities (like mentions) are treated as atomic units, preventing accidental partial modifications.
 - **Backend Friendly**: Content is exported as a structured JSON array (Quill-like Delta format), making it easy to store and render across different platforms.
 
-## 🚀 Key Features
+## 🚀 Powerful Flutter Mentions & Hashtags Features
 
 - **Multi-Trigger Support**: Handle `@mentions`, `#hashtags`, `[links]`, and more simultaneously.
 - **Delta Architecture**: Manages content as structured segments (JSON), perfect for backend storage.
