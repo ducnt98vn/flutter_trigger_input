@@ -13,5 +13,5 @@ class BbcodeTags {
   static const mention = {'mention'};
 }
 
-typedef SuggestionExecuteCallback<T extends SuggestionInfo> =
-    void Function(String trigger, String keyword);
+typedef SuggestionExecuteCallback<T extends SuggestionInfo> = void Function(
+    String trigger, String keyword);

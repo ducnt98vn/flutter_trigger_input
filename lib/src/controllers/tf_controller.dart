@@ -25,12 +25,10 @@ class TFController extends TextEditingController {
       if (!segment.isPlain) {
         final Map<String, dynamic>? mentionAttr =
             segment.attributes?['mention'] as Map<String, dynamic>?;
-        final String trigger =
-            (mentionAttr?['trigger'] as String?) ??
+        final String trigger = (mentionAttr?['trigger'] as String?) ??
             (segment.text.isNotEmpty ? segment.text[0] : '@');
         final String id = (mentionAttr?['id'] as String?) ?? '';
-        final String name =
-            (mentionAttr?['name'] as String?) ??
+        final String name = (mentionAttr?['name'] as String?) ??
             segment.text.replaceFirst(trigger, '');
 
         results.add(
@@ -143,9 +141,8 @@ class TFController extends TextEditingController {
   /// Trả về chuỗi JSON đại diện cho nội dung (Kiến trúc Delta)
   String get markupText {
     // Lọc bỏ các phân đoạn rỗng hoàn toàn trước khi xuất dữ liệu
-    final validSegments = _segments
-        .where((s) => s.text.isNotEmpty || !s.isPlain)
-        .toList();
+    final validSegments =
+        _segments.where((s) => s.text.isNotEmpty || !s.isPlain).toList();
 
     if (validSegments.isEmpty) return '[]';
 
@@ -170,8 +167,7 @@ class TFController extends TextEditingController {
 
       if (segment.isMention || segment.isHashtag) {
         final trigger = segment.text.isNotEmpty ? segment.text[0] : '';
-        segmentStyle =
-            _triggerConfigs[trigger]?.style ??
+        segmentStyle = _triggerConfigs[trigger]?.style ??
             style?.copyWith(color: Colors.blue, fontWeight: FontWeight.bold);
       } else if (segment.isLink) {
         segmentStyle = style?.copyWith(
@@ -180,8 +176,7 @@ class TFController extends TextEditingController {
         );
       }
 
-      final bool isOverlapping =
-          selection.isValid &&
+      final bool isOverlapping = selection.isValid &&
           !selection.isCollapsed &&
           segmentStart < selection.end &&
           segmentEnd > selection.start;

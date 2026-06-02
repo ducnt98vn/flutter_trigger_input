@@ -16,8 +16,8 @@ screenshots:
     path: screenshots/demo.png
 
 environment:
-  sdk: ^3.8.0
-  flutter: ">=3.0.0"
+  sdk: ^3.5.0
+  flutter: ">=3.27.0"
 
 dependencies:
   flutter:
@@ -30,4 +30,4 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   json_serializable: ^6.7.0
-  test: ^1.26.3
+  test: ^1.25.7

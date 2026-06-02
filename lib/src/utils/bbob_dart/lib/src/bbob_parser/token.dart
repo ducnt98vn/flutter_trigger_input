@@ -10,8 +10,8 @@ class Token {
   final int columnPosition;
 
   const Token(this.type, this.value, [int line = 0, int column = 0])
-    : linePosition = line,
-      columnPosition = column;
+      : linePosition = line,
+        columnPosition = column;
 
   bool get isText =>
       type == TokenType.space ||

@@ -117,8 +117,7 @@ class MentionTextRenderer {
               newSegments.add(
                 TextSegment(
                   text: updatedText,
-                  attributes:
-                      (linkAttributes != null &&
+                  attributes: (linkAttributes != null &&
                           !newStrInserted &&
                           updatedText == newStr)
                       ? linkAttributes
@@ -156,9 +155,8 @@ class MentionTextRenderer {
     }
 
     final optimizedSegments = _optimizeSegments(newSegments);
-    final String resultPlainText = optimizedSegments
-        .map((e) => e.text)
-        .join('');
+    final String resultPlainText =
+        optimizedSegments.map((e) => e.text).join('');
 
     if (BbCode.getMentionsBbobInText(resultPlainText).isNotEmpty) {
       return _syncFromMarkup(resultPlainText);

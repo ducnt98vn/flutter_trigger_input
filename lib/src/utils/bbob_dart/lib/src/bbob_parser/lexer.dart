@@ -67,16 +67,16 @@ class Lexer {
     String openTag = openSquareBracket,
     String closeTag = closeSquareBracket,
     bool enableEscapeTags = false,
-  }) : _tokens = [],
-       _openTag = openTag,
-       _closeTag = closeTag,
-       _enableEscapeTags = enableEscapeTags,
-       _reservedChars = {..._defaultReservedChars, openTag, closeTag},
-       _nonCharTokens = {
-         ..._defaultNotCharTokens,
-         openTag,
-         ...(enableEscapeTags ? [backslash] : []),
-       };
+  })  : _tokens = [],
+        _openTag = openTag,
+        _closeTag = closeTag,
+        _enableEscapeTags = enableEscapeTags,
+        _reservedChars = {..._defaultReservedChars, openTag, closeTag},
+        _nonCharTokens = {
+          ..._defaultNotCharTokens,
+          openTag,
+          ...(enableEscapeTags ? [backslash] : []),
+        };
 
   /// Creates a new [Lexer].
   factory Lexer.create(

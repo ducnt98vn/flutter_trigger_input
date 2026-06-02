@@ -1,43 +1,74 @@
-name: Flutter Trigger Input Package CI
+name: Flutter Trigger Input CI/CD
 
-# Temporarily disabled to prevent setup errors on push
 on:
-  workflow_dispatch: # Only run manually
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build_and_release:
+  test_and_analyze:
+    name: Test and Analyze
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: '3.38.7'
+          flutter-version: '3.27.3'
+          channel: 'stable'
           cache: true
+          architecture: x64
 
-      - name: Install dependencies
-        run: fvm flutter pub get
+      - name: 📦 Install dependencies (Package)
+        run: flutter pub get
 
-      # - name: Check format
-      #   run: dart format --set-exit-if-changed .
+      - name: ✨ Check format
+        run: dart format --set-exit-if-changed .
 
-      # - name: Analyze code
-      #   run: flutter analyze
+      - name: 🔍 Analyze code (Package)
+        run: flutter analyze
 
-      # - name: Run tests
-      #   run: flutter test --coverage
+      - name: 🧪 Run Unit Tests (Package)
+        run: flutter test --coverage
 
-      # - name: Check Publish Readiness
-      #   run: dart pub publish --dry-run
+      - name: 📦 Install dependencies (Example)
+        run: |
+          cd example
+          flutter pub get
 
-      # ─────────────── ONLY ON TAGS ───────────────
-      - name: 🏷️ Create or update Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: ncipollo/release-action@v1.16.0
+      - name: 🔍 Analyze code (Example)
+        run: |
+          cd example
+          flutter analyze
+
+      - name: 🏁 Check Publish Readiness
+        run: dart pub publish --dry-run
+
+  release:
+    name: Create GitHub Release
+    needs: test_and_analyze
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 📝 Extract Release Notes
+        id: extract_notes
+        run: |
+          VERSION=$(echo ${{ github.ref_name }} | sed 's/v//')
+          # Extract lines between the version header and the next header
+          sed -n "/## $VERSION/,/## /p" CHANGELOG.md | grep -v "## $VERSION" | grep -v "## " > release_notes.md
+
+      - name: 🏷️ Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          tag:       ${{ github.ref_name }}
-          name:      Release ${{ github.ref_name }}
-          artifacts: artifacts/*.apk
-          token:     ${{ secrets.GITHUB_TOKEN }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
