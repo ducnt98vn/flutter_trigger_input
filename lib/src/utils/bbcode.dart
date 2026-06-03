@@ -2,20 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_trigger_input/src/modal/length_map.dart';
 
 class BbCode {
-  /// Tạo chuỗi BBCode cho mention/trigger.
-  /// Thêm thuộc tính `trigger` để phân biệt @, #, v.v. khi parse ngược.
-  static String createMentionBbob({
-    String trigger = '@',
-    String id = '',
-    String name = '',
-  }) {
-    return '[mention trigger="$trigger" id="$id" name="$name"][/mention]';
-  }
-
-  static String createLinkBbob({String link = ''}) {
-    return '[link]$link[/link]';
-  }
-
   static List<LengthMap> getMentionsBbobInText(String source) {
     List<LengthMap> results = [];
     // Regex linh hoạt: nhận diện mọi cặp thẻ [tag]...[/tag]

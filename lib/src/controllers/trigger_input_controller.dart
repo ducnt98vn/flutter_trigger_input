@@ -152,10 +152,12 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
     final newText = result.text ?? tfController.text;
 
     if (tfController.text != newText ||
-        tfController.selection != result.selection) {
+        tfController.selection != result.selection ||
+        tfController.value.composing != result.composing) {
       tfController.value = TextEditingValue(
         text: newText,
         selection: result.selection,
+        composing: result.composing,
       );
     }
   }

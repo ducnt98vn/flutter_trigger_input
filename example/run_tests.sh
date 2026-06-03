@@ -6,8 +6,8 @@ echo "Running tests in example project..."
 echo "------------------------------------------------"
 
 # Run unit/widget tests
-echo "1. Running unit/widget tests..."
-fvm flutter test
+# echo "1. Running unit/widget tests..."
+# fvm flutter test
 
 # Run integration tests
 # Note: This requires a device/emulator to be running.

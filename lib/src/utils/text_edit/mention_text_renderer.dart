@@ -162,6 +162,21 @@ class MentionTextRenderer {
       return _syncFromMarkup(resultPlainText);
     }
 
+    // --- LOGIC XỬ LÝ IME (composing) ---
+    TextRange safeComposing = tfController.value.composing;
+    if (safeComposing.isValid) {
+      // Nếu có sự thay đổi độ dài văn bản trước hoặc trong vùng đang gõ, dịch chuyển vùng composing
+      int diffLength = resultPlainText.length - text.length;
+      if (diffLength != 0 && safeComposing.start >= replaceStart) {
+        safeComposing = TextRange(
+          start: (safeComposing.start + diffLength)
+              .clamp(0, resultPlainText.length),
+          end: (safeComposing.end + diffLength)
+              .clamp(0, resultPlainText.length),
+        );
+      }
+    }
+
     int safeOffset = selection.baseOffset;
     if (linkLengthDiff != 0 &&
         selection.baseOffset >=
@@ -174,6 +189,7 @@ class MentionTextRenderer {
       cacheDisplayText: resultPlainText,
       text: resultPlainText,
       selection: TextSelection.collapsed(offset: safeOffset),
+      composing: safeComposing,
       mentionedStrs: [],
       segments: optimizedSegments,
     );
