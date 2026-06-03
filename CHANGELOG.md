@@ -1,4 +1,4 @@
-## 0.4.0
+## 0.4.1
 
 - **Core Engine Upgrade**: Switched from a string-based manual offset calculation algorithm to a modern **Delta Architecture** (Segment-based state management). This significantly improves performance and provides JSON-friendly data for easy backend synchronization.
 - **Link Replacement**: Automatically converts pasted URLs into interactable text with customizable labels.

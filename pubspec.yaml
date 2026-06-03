@@ -1,6 +1,6 @@
 name: flutter_trigger_input
 description: High-performance Flutter Rich Text Input for Mentions (@), Hashtags (#), and Links. Built on Delta Architecture with atomic deletion, custom context menus, and JSON sync.
-version: 0.4.0
+version: 0.4.1
 repository: https://github.com/ducnt98vn/flutter_trigger_input
 issue_tracker: https://github.com/ducnt98vn/flutter_trigger_input/issues
 

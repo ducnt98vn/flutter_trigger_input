@@ -139,6 +139,7 @@ class TriggerInputController<T extends SuggestionInfo> extends ChangeNotifier {
       cacheSelection: state.cacheSelection,
       enableLinkReplacement: state.enableLinkReplacement,
       linkReplacementText: state.linkReplacementText,
+      appendSpaceOnReplace: state.appendSpaceOnAdd,
     );
 
     // Cập nhật segments trước khi cập nhật value của Controller

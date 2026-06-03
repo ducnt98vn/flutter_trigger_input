@@ -242,10 +242,18 @@ class TriggerInputFieldState<T extends SuggestionInfo>
         (m) => triggerStartPos < m.end && cursorPos > m.start,
       );
 
-      bool shouldShowSuggestions = !isOverlapping;
+      // Nếu keyword kết thúc bằng 2 dấu cách trở lên, dừng gợi ý
+      final bool hasDoubleSpaceAtEnd = keyword.endsWith('  ');
+
+      bool shouldShowSuggestions = !isOverlapping && !hasDoubleSpaceAtEnd;
 
       if (shouldShowSuggestions) {
         widget.onMentionSearchChanged.call(triggerSymbol, keyword);
+      } else {
+        // Xóa danh sách gợi ý hiện tại nếu có
+        if (widget.controller.state.suggestionInfos.value.isNotEmpty) {
+          widget.controller.state.suggestionInfos.value = [];
+        }
       }
     } else if (widget.controller.state.suggestionInfos.value.isNotEmpty) {
       widget.controller.state.suggestionInfos.value = [];

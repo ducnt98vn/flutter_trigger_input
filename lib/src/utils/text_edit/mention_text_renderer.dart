@@ -12,6 +12,7 @@ class MentionTextRenderer {
     required TextSelection cacheSelection,
     bool enableLinkReplacement = true,
     String linkReplacementText = 'See link',
+    bool appendSpaceOnReplace = false,
   }) {
     final text = tfController.text;
     final selection = tfController.selection;
@@ -41,8 +42,14 @@ class MentionTextRenderer {
       linkAttributes = {
         'link': {'url': newStr.trim()},
       };
-      linkLengthDiff = newStr.length - linkReplacementText.length;
-      newStr = linkReplacementText;
+
+      String replacementWithSuffix = linkReplacementText;
+      if (appendSpaceOnReplace) {
+        replacementWithSuffix += ' ';
+      }
+
+      linkLengthDiff = newStr.length - replacementWithSuffix.length;
+      newStr = replacementWithSuffix;
     }
 
     // Sliding logic for ambiguous insertions
@@ -63,6 +70,7 @@ class MentionTextRenderer {
 
     int currentOffset = 0;
     bool newStrInserted = false;
+    int extraDeletionOffset = 0;
 
     if (oldSegments.isEmpty ||
         (oldSegments.length == 1 && oldSegments.first.text.isEmpty)) {
@@ -105,9 +113,15 @@ class MentionTextRenderer {
         if (!segment.isPlain) {
           // Atomic Deletion logic
           if (newStr.isEmpty && (replaceEnd - replaceStart) > 0) {
-            continue; // Skip the whole special entity
+            // Nếu xóa bất kỳ phần nào của một thực thể đặc biệt, ta xóa sạch cả thực thể đó.
+            // Để con trỏ không bị nhảy, ta cần tính toán xem đã xóa thêm bao nhiêu ký tự
+            // so với những gì Framework nghĩ (những ký tự nằm trước replaceStart).
+            if (replaceStart > segmentStart) {
+              extraDeletionOffset += (replaceStart - segmentStart);
+            }
+            continue; // Bỏ qua toàn bộ segment này
           } else {
-            // Modification inside a special entity -> convert to plain text unless fully replaced by a link
+            // Thay đổi nội dung bên trong thực thể -> biến thành văn bản thường
             final updatedText = segment.text.replaceRange(
               relStart,
               relEnd,
@@ -128,21 +142,18 @@ class MentionTextRenderer {
             if (!newStrInserted) newStrInserted = true;
           }
         } else {
-          // Plain text modification: SPLIT the segment if it's a link insertion
-          // Add prefix part
+          // Xử lý văn bản thường: Chia nhỏ segment nếu chèn vào giữa
           if (relStart > 0) {
             newSegments.add(
               TextSegment(text: segment.text.substring(0, relStart)),
             );
           }
-          // Add the replacement string (as a Link segment if attributes exist)
           if (!newStrInserted) {
             newSegments.add(
               TextSegment(text: newStr, attributes: linkAttributes),
             );
             newStrInserted = true;
           }
-          // Add suffix part
           if (relEnd < segment.text.length) {
             newSegments.add(TextSegment(text: segment.text.substring(relEnd)));
           }
@@ -165,30 +176,43 @@ class MentionTextRenderer {
     // --- LOGIC XỬ LÝ IME (composing) ---
     TextRange safeComposing = tfController.value.composing;
     if (safeComposing.isValid) {
-      // Nếu có sự thay đổi độ dài văn bản trước hoặc trong vùng đang gõ, dịch chuyển vùng composing
       int diffLength = resultPlainText.length - text.length;
       if (diffLength != 0 && safeComposing.start >= replaceStart) {
         safeComposing = TextRange(
           start: (safeComposing.start + diffLength)
               .clamp(0, resultPlainText.length),
-          end: (safeComposing.end + diffLength)
-              .clamp(0, resultPlainText.length),
+          end:
+              (safeComposing.end + diffLength).clamp(0, resultPlainText.length),
         );
       }
     }
 
+    // --- LOGIC XỬ LÝ SELECTION ---
     int safeOffset = selection.baseOffset;
+
+    // Điều chỉnh cho link replacement (URL dài thành "See link" ngắn)
     if (linkLengthDiff != 0 &&
         selection.baseOffset >=
             replaceStart + (newStr.length + linkLengthDiff)) {
       safeOffset -= linkLengthDiff;
     }
+
+    // Điều chỉnh cho xóa nguyên tử (Xóa cả block thay vì 1 ký tự)
+    if (extraDeletionOffset != 0) {
+      safeOffset -= extraDeletionOffset;
+    }
+
     safeOffset = safeOffset.clamp(0, resultPlainText.length);
+
+    // Sử dụng fromPosition để bảo toàn thuộc tính affinity (hướng con trỏ)
+    final safeSelection = TextSelection.fromPosition(
+      TextPosition(offset: safeOffset, affinity: selection.affinity),
+    );
 
     return MentionTextRendererResult(
       cacheDisplayText: resultPlainText,
       text: resultPlainText,
-      selection: TextSelection.collapsed(offset: safeOffset),
+      selection: safeSelection,
       composing: safeComposing,
       mentionedStrs: [],
       segments: optimizedSegments,

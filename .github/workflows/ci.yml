@@ -11,11 +11,19 @@ jobs:
   test_and_analyze:
     name: Test and Analyze
     runs-on: ubuntu-latest
+    env:
+      # Fix Node.js 20 deprecation warning and force newer version
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Essential for Gitleaks to scan history
 
       - name: 🛡️ Secret Scan (Gitleaks)
+        if: ${{ !env.ACT }}
         uses: gitleaks/gitleaks-action@v2
+        with:
+          args: --verbose --redact --staged
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -31,7 +39,7 @@ jobs:
         run: flutter pub get
 
       - name: 🔍 Dependency Scan (Package)
-        run: dart pub outdated --no-dev-dependencies --format=json
+        run: dart pub outdated --no-dev-dependencies --json
 
       - name: ✨ Check format
         run: dart format --set-exit-if-changed .
@@ -50,7 +58,7 @@ jobs:
       - name: 🔍 Dependency Scan (Example)
         run: |
           cd example
-          dart pub outdated --no-dev-dependencies --format=json
+          dart pub outdated --no-dev-dependencies --json
 
       - name: 🔍 Analyze code (Example)
         run: |

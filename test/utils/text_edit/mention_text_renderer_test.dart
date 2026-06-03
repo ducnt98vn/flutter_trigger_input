@@ -50,9 +50,10 @@ void main() {
           tfController.value = TextEditingValue(
             text: tc.newText,
             selection: tc.newSelection,
-            composing: tc.composing.isValid && tc.composing.end <= tc.newText.length 
-                ? tc.composing 
-                : TextRange.empty,
+            composing:
+                tc.composing.isValid && tc.composing.end <= tc.newText.length
+                    ? tc.composing
+                    : TextRange.empty,
           );
 
           final result = renderer.execute(
@@ -241,7 +242,8 @@ void main() {
       cacheSelection: const TextSelection.collapsed(offset: 4),
       newText: "See https://flutter.dev",
       newSelection: const TextSelection.collapsed(offset: 23),
-      composing: const TextRange(start: 23, end: 23), // Composition starting right after URL
+      composing: const TextRange(
+          start: 23, end: 23), // Composition starting right after URL
       expectedText: "See See link",
       expectedOffset: 12,
       expectedComposing: const TextRange(start: 12, end: 12), // Shifted by -11
@@ -250,17 +252,20 @@ void main() {
     TestCase(
       description: 'IME: Composing range shift after atomic deletion',
       cacheText: "Hello @James ",
-      cacheSelection: const TextSelection.collapsed(offset: 12), // end of '@James'
+      cacheSelection:
+          const TextSelection.collapsed(offset: 12), // end of '@James'
       newText: "Hello @Jame ",
       newSelection: const TextSelection.collapsed(offset: 11),
       composing: const TextRange(start: 12, end: 12), // Composition at the end
       initialSegments: [
         TextSegment(text: "Hello "),
-        TextSegment(text: "@James", attributes: {"mention": {"id": "1"}}),
+        TextSegment(text: "@James", attributes: {
+          "mention": {"id": "1"}
+        }),
         TextSegment(text: " ")
       ],
       expectedText: "Hello  ", // '@James' removed (6 chars)
-      expectedOffset: 7, // selection clamped to end of "Hello  "
+      expectedOffset: 6, // selection at index 6 (start of deleted mention)
       expectedComposing: const TextRange(start: 7, end: 7), // 12 - 5 = 7
       expectedMentionCount: 0,
     ),
@@ -284,11 +289,32 @@ void main() {
       newSelection: const TextSelection.collapsed(offset: 11),
       initialSegments: [
         TextSegment(text: "Hello 👋 "),
-        TextSegment(text: "@James", attributes: {"mention": {"id": "1"}})
+        TextSegment(text: "@James", attributes: {
+          "mention": {"id": "1"}
+        })
       ],
       expectedText: "Hello 👋 😊 @James",
       expectedOffset: 11,
       expectedMentionCount: 1,
+    ),
+    TestCase(
+      description: 'Atomic Deletion: Backspace at end of mention (cursor 0)',
+      cacheText: "@abc test123",
+      cacheSelection: const TextSelection.collapsed(offset: 4),
+      newText: "@ab test123",
+      newSelection: const TextSelection.collapsed(offset: 3),
+      initialSegments: [
+        TextSegment(
+          text: "@abc",
+          attributes: {
+            "mention": {"id": "1"}
+          },
+        ),
+        TextSegment(text: " test123")
+      ],
+      expectedText: " test123",
+      expectedOffset: 0,
+      expectedMentionCount: 0,
     ),
   ]);
 }

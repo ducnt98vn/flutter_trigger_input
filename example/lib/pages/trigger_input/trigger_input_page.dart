@@ -182,21 +182,31 @@ class _TriggerInputPageState extends State<TriggerInputPage> {
                                   },
                                 );
 
+                                final List<TextSegment> insertSegments = [
+                                  linkSegment
+                                ];
+                                String suffix = '';
+                                if (_controller.state.appendSpaceOnAdd) {
+                                  insertSegments.add(TextSegment(text: ' '));
+                                  suffix = ' ';
+                                }
+
                                 // Cập nhật cache trước để Renderer không xử lý đè lên gây lặp chữ
                                 final newFullText = currentText.replaceRange(
-                                    start, end, 'Google');
+                                    start, end, 'Google$suffix');
                                 _controller.state.cacheDisplayText =
                                     newFullText;
                                 _controller.state.cacheSelection =
                                     TextSelection.collapsed(
-                                  offset: start + 'Google'.length,
+                                  offset:
+                                      start + 'Google'.length + suffix.length,
                                 );
 
                                 _controller.tfController
-                                    .replaceRangeWithSegment(
+                                    .replaceRangeWithSegments(
                                   start,
                                   end,
-                                  linkSegment,
+                                  insertSegments,
                                 );
                               },
                               child: const Text('Add Link'),
